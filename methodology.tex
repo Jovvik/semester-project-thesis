@@ -1,43 +1,55 @@
 \chapter{Methodology}
+\label{chap:methodology}
+
+This chapter describes our pipeline for analyzing the topology of neural network decision 
+boundaries. For a given neural network and dataset, our pipeline consists of the
+following steps:
+\begin{enumerate}
+    \item Sample a subset of the dataset and obtain model predictions on this subset
+    \item Construct the LVR complex using the predicted labels
+    \item Construct the LVR complex using ground truth labels
+    \item Compare the resulting persistence diagrams using topological metrics
+\end{enumerate}
+We first present the datasets used in our experiments, including both synthetic 2D data 
+for interpretable validation and real-world image datasets. We then detail the neural 
+network architectures used for classification. Finally, we describe our choices for the 
+key components of the pipeline: the construction of the Labeled Vietoris-Rips complex 
+for both binary and multiclass settings, and the metrics used for comparing persistence 
+diagrams.
 
 \section{Datasets and models}
 
-% \begin{itemize}
-%     \item MNIST, FashionMNIST and (maybe?) show the synthetic datasets
-%     \item Describe the model(s) used
-% \end{itemize}
+To evaluate our approach we have used the MNIST~\cite{deng2012mnist}, FashionMNIST~\cite{xiao2017fashionmnistnovelimagedataset}
+and CIFAR10~\cite{krizhevsky2009learning} datasets with the predefined training and testing splits.
+These datasets are commonly used as simple problems, providing a robust foundation for evaluating model performance.
+Additionally, we have also used synthetic 2D binary classification datasets for more easily interpretable experiments.
+In the 2D setting, we can visualize the simplicial complex, as well as know the ground truth decision boundary
+and its homology groups. For subsampling, we use 2000 points unless specified otherwise.
 
-For evaulation we have used the MNIST~\cite{deng2012mnist} and FashionMNIST~\cite{xiao2017fashionmnistnovelimagedataset} datasets
-with the predefined training and testing splits.
-We have also used synthetic 2D and 3D binary classification datasets for more easily interpretable experiments.
-They are shown in Figures~\ref{fig:synthetic-datasets-2d} and \ref{fig:synthetic-datasets-3d}.
-with each dataset consisting of $10000$ points, uniformly sampled from $[ - 1, 1]^2$
-and split into training and testing sets with a ratio of $0.8:0.2$.
+The synthetic datasets consist of points uniformly sampled from the $[ - 1, 1]^2$ square,
+with a total of $2000$ points per dataset. Figure~\ref{fig:synthetic-datasets-2d}
+shows the two datasets used. The nested annuli dataset, also referred to as simply the nested dataset,
+has the decision boundary of 5 concentric circles, with the $i$-th circle having the radius of $0.18 \cdot (i + 1)$.
+The manyholes dataset assigns a point $(x, y)$ class 1 if
+\begin{equation}
+    \sin(10x) + \sin(10y) - x - y > 0,
+\end{equation}
+and class 0 otherwise. This results in multiple ``holes'' in the decision boundary at various scales.
 
-\todo{Maybe drop 3D}
-
-\todo{Describe model for 2D/3D if we need that}
-
-For MNIST and FashionMNIST, we have used:
-\begin{enumerate}
-    \item A simple feed-forward neural network with layer sizes
-    $784, 512, 128, 16, 10$, ReLU activations and a softmax output layer.
-    % This network is later denoted as ``FC''.
-    \item A convolutional neural network with a modification of the architecture given in
-    \href{https://github.com/pytorch/examples/tree/main/mnist}{https://github.com/pytorch/examples/tree/main/mnist}.
-    The modifications are:
-    \begin{enumerate}
-        \item Addition of the \verb|scale| parameter, which allows us to change the neural network width.
-        It is a multiplicative factor for the number of channels in the convolutional layers and number of neurons in the fully connected layers.
-        \item Addition of the \verb|extra_cnn| parameter, which adds convolutional layers with $64 \cdot \verb|scale|$ channels, $3 \times 3$ kernel size,
-        1 pixel padding and stride, as well as a ReLU activation.
-        \item Additon of the \verb|extra_linear| parameter, which similarly adds a fully connected layer with $128 \cdot \verb|scale|$ neurons,
-        as well as a ReLU activation.
-    \end{enumerate}
-\end{enumerate}
+% The synthetic datasets are shown in Figure~\ref{fig:synthetic-datasets-2d}.
+% with each dataset consisting of $10000$ points, uniformly sampled from $[ - 1, 1]^2$
+% and split into training and testing sets with a ratio of $0.8:0.2$.
 
 \begin{figure}
     \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{plots/nested.jpg}
+        \caption{The nested annuli dataset}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{plots/manyholes.jpg}
+        \caption{The manyholes dataset}
+    \end{subfigure}
     % \begin{subfigure}{0.45\textwidth}
     %     \resizebox{\textwidth}{!}{
     %         \begin{tikzpicture}
@@ -78,14 +90,35 @@ For MNIST and FashionMNIST, we have used:
     \label{fig:synthetic-datasets-2d}
 \end{figure}
 
+
+% \todo{Maybe add 3D}
+
+For the image datasets, we have used the following models:
+\begin{enumerate}
+    \item \emph{FC}: A fully connected neural network with layer sizes
+    $w \cdot h, 512, 128, 16, 10$, where $w$ and $h$ are input image width and height.
+    The network uses ReLU activations after each layer, and a softmax activation after the last layer.
+    \item \emph{CNN}: A convolutional neural network with the architecture given in the PyTorch MNIST example\footnote{
+        Available at \href{https://github.com/pytorch/examples/tree/main/mnist}{https://github.com/pytorch/examples/tree/main/mnist}.
+    },
+    with the following parameters added:
+    \begin{enumerate}
+        \item \verb|in_size| and \verb|in_channels|: To account for CIFAR-10 having 3 channels and $32 \times 32$ images,
+        as opposed to 1 channel and $28 \times 28$ images in MNIST and FashionMNIST,
+        \verb|in_channels| sets the number of input channels, and \verb|in_size|
+        adjusts the number of neurons in the first fully connected layer.
+        \item \verb|scale|: A multiplicative factor for the number of convolutional filters and number of neurons in the fully connected layers.
+        \item \verb|extra_cnn|: Adds convolutional layers with $64 \cdot \verb|scale|$ channels, a $3 \times 3$ kernel size,
+        1-pixel padding and stride, as well as a ReLU activation.
+        \item \verb|extra_linear|: Adds fully connected layers with $128 \cdot \verb|scale|$ neurons,
+        as well as a ReLU activation.
+    \end{enumerate}
+\end{enumerate}
+
 \section{Metrics and evaluation}
 
-% \begin{itemize}
-%     \item Wasserstein distance
-%     \item Total bar length
-% \end{itemize}
-
-\todo{Explain how and why we use those}
+For estimating similarity between two persistence diagrams,
+we use the following metrics:
 
 \begin{definition}
     For \(q \geq 1\), the \emph{Wasserstein distance} between two persistence diagrams
@@ -98,13 +131,22 @@ For MNIST and FashionMNIST, we have used:
 \end{definition}
 
 \begin{definition}
-    The \emph{total bar length} of a persistence diagram $\dgm_p(\mathcal{F})$ is defined as
+    The \emph{total bar length} (TBL) of a persistence diagram $\dgm_p(\mathcal{F})$ is defined as
     \begin{equation}
         \sum_{(b, d) \in \dgm_p(\mathcal{F})} d - b
     \end{equation}
 \end{definition}
 
+The Wasserstein distance and TBL offer different approaches to comparing
+persistence diagrams. The Wasserstein distance directly measures the similarity
+between two persistence diagrams by comparing them to each other. In contrast,
+total bar length is a single-diagram measure that quantifies the complexity of
+an individual persistence diagram. To compare two diagrams using TBL, we
+calculate the TBL for each diagram separately and then take the absolute
+difference between these two values.
+
 \section{Simplicial complex}
+\label{sec:complex}
 
 % \begin{itemize}
     % \item Labeled Vietoris-Rips complex
@@ -114,21 +156,19 @@ For MNIST and FashionMNIST, we have used:
 %     \item Dowker complex
 % \end{itemize}
 
-We use the Labeled Vietoris-Rips complex, as presented in~\cite{ramamurthy2018topologicaldataanalysisdecision}.
+We use the labeled Vietoris-Rips complex, as presented in previous research~\cite{ramamurthy2018topologicaldataanalysisdecision}.
 To improve computational performance, we used the \verb|ripser++|~\cite{zhang2020gpu}
-and the \verb|giotto-ph|~\cite{burella2021giottoph} packages for the Vietoris-Rips persistence barcode computation.
-Both of these methods have shown lower runtime than the original
-\verb|ripser|~\cite{Bauer2021Ripser} package.
-However, due to GPU memory limitations, we use \verb|giotto-ph| in all experiments.
+and the \verb|giotto-ph|~\cite{burella2021giottoph} packages for computing Vietoris-Rips persistence barcodes.
+Both of these methods outperform the original \verb|ripser|~\cite{Bauer2021Ripser} package in terms of runtime.
+Due to GPU memory limitations, we use \verb|giotto-ph| in all experiments.
 
-In previous research~\cite{ramamurthy2018topologicaldataanalysisdecision,li2020finding}\todo{maybe more},
+In previous research~\cite{li2020finding,ramamurthy2018topologicaldataanalysisdecision},
 classification datasets with \(n > 2\) classes were split into
 \(\binom{n}{2}\) binary classification problems.
-This process loses topological information, as shown in an example dataset
-in Figure~\ref{fig:binarization}.
+However, this process loses topological information, as shown in an example dataset in Figure~\ref{fig:binarization}.
 The decision boundary for all three clsases (\ref{fig:binarization:all})
-has a non-trivial first homology group \(H_1\).
-This is not the case for any binary classification problem for this dataset
+has a non-trivial first homology group \(H_1\), but
+this is not the case for any binary classification problem for this dataset
 (\ref{fig:binarization:rg}, \ref{fig:binarization:gb}).
 Moreover, the decision boundary is disconnected for the red and green subdataset,
 but connected for the full dataset.
@@ -210,32 +250,18 @@ but connected for the full dataset.
         \caption{Green and blue classes}
         \label{fig:binarization:gb}
     \end{subfigure}
-    \caption{A 2D example that demonstrates the loss of topological information when binarizing a multiclass dataset. Red, green and blue denote different classes, the black line is the decision boundary.}
+    \caption{A 2D example that demonstrates the loss of topological information when binarizing a multiclass dataset.
+    Red, green and blue shapes denote different classes, the black line is the decision boundary.}
     \label{fig:binarization}
 \end{figure}
 
-To avoid this information loss, we propose a generalization of
-the Labeled Vietoris-Rips complex to multiclass classification.
-For a labeled discrete sample \(\{(z_1, c_1), \dots, (z_n, c_n)\}\),
-where \(z \in \R^d\) is a data point and \(c \in \{1, \dots, n\}\) is its class,
-we define a bipartite graph \(G_\theta\) by
-adding an endge between \(z_i\) and \(z_j\) iff \(c_i \neq c_j\)
-and \(\norm{z_i - z_j} \leq \theta\).
-\todo{Say how this is a no-op compared to LVR}
-\todo{Say we don't generalize LC}
+To avoid this information loss, we propose applying the Labeled Vietoris-Rips complex
+to multiclass classification problems. The construction of the complex is exactly the same
+as in the binary setting, with neighbors of different classes being connected and 2-hop
+neighbors being connected afterwards. Notably, the labeled \v{C}ech complex cannot be
+applied to the multiclass setting without modifications, as it uses elements of only one
+class as its vertices.
 
-To combat issues shown in \ref{sec:2d-issues}, we propose \emph{circumcircle filtering} (CC).
-CC removes an edge between points \(A\) and \(B\) from the simplicial complex
-if exists a point \(C\) such that \(|AB|^2 > (|AC|^2 + |BC|^2) \theta\),
-where \(\theta \in [0, 2]\) is a parameter.
-Intuitively, this approach aims to make a simplicial complex more similar
-to the Alpha complex \todo{cite} by removing some (but not all) non-Delaunay edges.
-\todo{Explain this better}
-
-Alternatively, we propose usage of the \emph{Dowker complex} to combat the same issues.
-However, computing it requires \(\mathcal{O}(n^3 \cdot d)\) runtime and \(\mathcal{O}(n^3)\)
-memory for \(n\) points in \(\R^d\), which is prohibitively expensive
-for the MNIST and FashionMNIST datasets.
-Additionally, the Dowker complex is not applicable in the multiclass setting.
-Nonetheless, we demonstrate its effectiveness on 2D data in \ref{sec:2d-issues}.
-\todo{Confirm complexity}
+Consistent with previous research, we only consider $0$ and $1$-dimensional homology groups,
+and thus only compute simplices up to dimension $3$. Unless specified otherwise, all homology
+groups and persistence diagrams discussed are in dimension $1$.

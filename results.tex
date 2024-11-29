@@ -1,26 +1,467 @@
 \chapter{Results and discussion}
+\label{chap:results}
 
-\section{Results on MNIST}
+This chapter presents our experimental results on real-world datasets. We begin by examining 
+the impact of circumcircle filtering in high dimensions, showing why this technique, while 
+useful in 2D, becomes unnecessary for real-world data. We then analyze how topological 
+features of decision boundaries evolve during training in both binary and multiclass 
+settings. Finally, we investigate whether topological metrics computed on training data 
+can serve as indicators of model quality, potentially enabling detection of overfitting 
+without requiring a separate validation set.
 
-\begin{itemize}
-    % \item Show why CC filtering is not needed for MNIST
-    \item Accuracy of the model correlates with the Wasserstein distance and the total bar length
-    \item ``Elbow'' behavior --- first epochs have high changes in topological metrics, then it's flatter.
-    Probably easier to show for Wasserstein distance, as the total bar length may be both high and low.
-    Alternatively, show the difference between total bar length and GT total bar length.
-    \item Underfitting and overfitting leads to worse topological metrics
-    \item More accurate models have better topological metrics
-    \item Size of the model doesn't impact the topological metrics (as long as the accuracy is the same for them)
-\end{itemize}
+\section{Impact of circumcircle filtering}
 
-\section{Results on FashionMNIST}
+Our previous two-dimensional experiments established an appropriate value of the
+circumcircle filtering parameter $\theta$ to be $1.4$. However, applying this
+value to real-world datasets presents two challenges. First, these datasets exist
+in much higher dimensions: MNIST and FashionMNIST in 784 dimensions, and CIFAR-10
+in 3072 dimensions. Second, while the two-dimensional datasets are relatively
+dense with 2000 points distributed over a 2D plane, the same number of points
+(used due to computational constraints) become sparse when distributed over
+hundreds or thousands of dimensions. These differences require us to determine
+the appropriate value of $\theta$ again.
 
-Hopefully, just show it's the same.
+\begin{figure}
+    \centering
+    \resizebox{0.5\textwidth}{!}{
+        \input{plots/cc_effect_hist_mnist_r1.00_p1.pgf}
+    }
+    \caption{Distribution of changes in Wasserstein distance with and without CC filtering ($\theta = 1$) for binary classification on the MNIST dataset.}
+    \label{fig:cc_effect_hist}
+\end{figure}
+
+To determine the appropriate value of $\theta$ in high dimensions, we analyzed
+persistence diagrams of the LS-LVR complex constructed using ground truth
+labels, comparing versions with and without CC filtering. The Wasserstein
+distance between these diagrams and the absolute distance between their total
+bar lengths provide a measure of CC's impact.
+
+First, we examine the binary classification setting in the MNIST dataset with
+$\theta = 1$.  Figure~\ref{fig:cc_effect_hist} illustrates that the Wasserstein
+distance remains largely unchanged when applying CC, despite CC removing
+20--50\% of edges.  When changes do occur, they are minor --- the maximum
+difference in distances is 7. This is generally a small difference, given that
+we consider 100 filtration values, and there are hundreds of homology classes in
+the persistence diagrams. Figure~\ref{fig:cc_effect} shows the two most
+different persistence diagrams, which are visually very similar.
+
+This lack of significant impact from CC is consistent across datasets and
+classification settings, as summarized in Table~\ref{tab:cc_effect}. Note that
+the values for the multiclass setting are lower because it involves only one
+experiment per dataset, as opposed to 45 experiements for the binary
+classification setting.
+
+\begin{figure}
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/cc_effect_ph1.pgf}
+        }
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/cc_effect_ph2.pgf}
+        }
+    \end{subfigure}
+    \caption{Comparison between persistence diagrams computed without CC
+    filtering (left) and with CC filtering (right) for the binary classification
+    pair that showed the largest difference in Wasserstein distance in MNIST.}
+    \label{fig:cc_effect}
+\end{figure}
+
+\begin{table}
+    \centering
+    \begin{tabular}{rcc}
+        \toprule
+        Dataset & Binary & Multiclass \\
+        \hline
+        MNIST & 7 & 4 \\
+        FashionMNIST & 14 & 1 \\
+        CIFAR10 & 7 & 0 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Maximum differences in Wasserstein distance between persistence
+    diagrams with and without CC for different datasets and classification
+    settings.}
+    \label{tab:cc_effect}
+\end{table}
+
+To increase the effect of CC, the value of $\theta$ would need to be reduced.
+However, values lower than 1 would remove an edge even when there are
+no points between its vertices. Figure~\ref{fig:cc_high_theta} illustrates this:
+with $\theta < 1$, the edge $AB$ would be removed due to presence of point $C$
+in the circle, even though $C$ is not between $A$ and $B$.  This goes against
+the intended purpose of CC.
+
+Based on these findings, we conclude that circumcircle filtering is unnecessary
+for our experiments on real-world datasets.  The most restrictive feasible value
+of $\theta = 1$ does not result in a significant change in the persistence
+diagrams, making CC unnecessary for our experiments.
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}[scale=0.7]
+        \coordinate (A) at (0,0);
+        \coordinate (B) at (5,2);
+        \coordinate (C) at (6,3); 
+
+        % circle center
+        \coordinate (M) at ($(A)!0.5!(B)$);
+
+        % triangle
+        \draw[thick] (A) -- (B);
+        \draw[fill=black] (C) circle (0.05);
+        % \draw[thick] (A) -- (B) -- (C) -- cycle;
+        % \draw ($(C)!0.1!(B)$) -- ($(C) + (-0.2,0.5)$) -- ($(C)!0.1!(A)$);
+        % circle
+        \pgfmathsetmacro{\radius}{sqrt((5)^2 + (2)^2)/2 * 1.7}
+        \draw[fill=blue!50, fill opacity=0.3] (M) circle (\radius);
+
+        \node[left]  at (A) {$A$};
+        \node[right] at (B) {$B$};
+        \node[above] at (C) {$C$};
+    \end{tikzpicture}
+    \caption{Illustration of circumcircle filtering with $\theta = 0.5$.
+    The blue circle indicates the area where any point's presence
+    would cause edge $AB$ to be removed.}
+    \label{fig:cc_high_theta}
+\end{figure}
+
+\section{Results in the binary classification setting}
+\label{sec:binary}
+
+% \begin{itemize}
+%     % \item Show why CC filtering is not needed for MNIST
+%     \item Accuracy of the model correlates with the Wasserstein distance and the total bar length
+%     \item ``Elbow'' behavior --- first epochs have high changes in topological metrics, then it's flatter.
+%     Probably easier to show for Wasserstein distance, as the total bar length may be both high and low.
+%     Alternatively, show the difference between total bar length and GT total bar length.
+%     \item Underfitting and overfitting leads to worse topological metrics
+%     \item More accurate models have better topological metrics
+%     \item Size of the model doesn't impact the topological metrics (as long as the accuracy is the same for them)
+% \end{itemize}
+
+First, we analyze decision boundaries on the test subset of the MNIST dataset.
+We use the CNN model with default hyperparameters trained on the problem of distinguishing
+between the classes 0 and 1.
+
+In Figure~\ref{fig:baseline-pds} we observe that the persistence diagram of the
+LS-LVR complex computed using predicted labels evolves during training to match
+the PD computed using ground truth labels.
+This is supported quantitatively by both the Wasserstein distance between the
+two diagrams and their total bar length, which are shown in
+Figure~\ref{fig:baseline-topmetrics}.
+The same trend can be observed for the other pairs of classes, shown in
+Figure~\ref{fig:baseline-wass-montage} and
+Figure~\ref{fig:baseline-tbl-montage}.
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/class01-baseline-tbl.pgf}
+        }
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/class01-baseline-wass.pgf}
+        }
+    \end{subfigure}
+    \caption{Evolution of topological metrics during training for the classes 0 and 1 in the MNIST dataset.}
+    \label{fig:baseline-topmetrics}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/nn1_class01_mnist_pd.pgf}
+        }
+        \caption{Epoch 1}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/nn7_class01_mnist_pd.pgf}
+        }
+        \caption{Epoch 7}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/nn14_class01_mnist_pd.pgf}
+        }
+        \caption{Epoch 14}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/gt_class01_mnist_pd.pgf}
+        }
+        \caption{Ground truth}
+    \end{subfigure}
+    \caption{Evolution of persistence diagrams during training for the classes 0 and 1 in the MNIST dataset.}
+    \label{fig:baseline-pds}
+\end{figure}
+
+A notable ``elbow" pattern emerges in these metrics: the initial epochs show
+significant changes, followed by slower, more stable changes.
+This pattern can be explained by the fact that as the model is trained, its loss
+decreases, and so does the magnitude of the changes in its weights.
+This, in turn, leads to less pronounced changes in the topology of the decision boundary.
+
+The topological metrics also correlate with model accuracy.
+To illustrate this, we plot the Wasserstein distance as a function of accuracy
+across all class pairs in Figure~\ref{fig:baseline-binary-scatter-wass}, and do
+the same for the Wasserstein distance in
+Figure~\ref{fig:baseline-binary-scatter-tbl}.
+The Wasserstein distance shows stronger correlation with an average $R^2$ value
+of 0.72 compared to 0.49 for total bar length.
+
+\begin{figure}
+    \centering
+    \resizebox{\textwidth}{!}{
+        \input{plots/baseline-scatter-wass.pgf}
+    }
+    \caption{Relationship between Wasserstein distance and model accuracy across
+    all binary classification pairs. Connected points represent consecutive
+    epochs for the same class pair.}
+    \label{fig:baseline-binary-scatter-wass}
+\end{figure}
 
 \section{Results on multiclass classification}
+\label{sec:multiclass}
 
-Show it's the same (?)
+The results from binary classification extend naturally to the multiclass
+setting, but with additional topological information.
+As shown theoretically in Section~\ref{sec:complex}, binarization loses
+topological information. This is evident in Figure~\ref{fig:multiclass-pds},
+where the persistence diagrams contain significantly more points than their
+binary counterparts, reflecting more homology classes.
 
-\section{Comparison of CNN and MLP}
+While the increased complexity makes qualitative analysis of the PDs more
+challenging, both topological metrics behave similarly to the binary case, as
+shown in Figure~\ref{fig:multiclass-topmetrics}. Notably, the Wasserstein
+distance decreases monotonically, showing more stable behavior than in the
+binary setting.
 
-If there's anything interesting
+Because we only have one measurement per epoch of a given model, to examine
+correlation of topological metrics with accuracy, we need multiple models. To
+this end, we train the following model variants:
+\begin{enumerate}
+    \item \emph{Baseline}: CNN with default hyperparameters
+    \item \emph{Small}: CNN with reduced layer sizes (\verb|scale|${}= 0.25$)
+    \item \emph{Wide}: CNN with increased layer sizes (\verb|scale|${}= 4$)
+    \item \emph{Deep}: CNN with additional layers (4 extra CNN and 4 extra linear layers)
+    \item \emph{Overfit}: CNN with agressive learning rate growth ($\gamma = 1.9$)
+    to simulate overfitting
+    \item \emph{Underfit}: CNN with small learning rate ($10^{-6}$) to achieve
+    underfitting
+    \item FC with default hyperparameters
+\end{enumerate}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/all_class_baseline_wass.pgf}
+        }
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/all_class_baseline_tbl.pgf}
+        }
+    \end{subfigure}
+    \caption{Evolution of topological metrics in multiclass training.}
+    \label{fig:multiclass-topmetrics}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/nn1_all_class_mnist_pd.pgf}
+        }
+        \caption{Epoch 1}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/nn7_all_class_mnist_pd.pgf}
+        }
+        \caption{Epoch 7}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/nn14_all_class_mnist_pd.pgf}
+        }
+        \caption{Epoch 14}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/gt_all_class_mnist_pd.pgf}
+        }
+        \caption{Ground truth}
+    \end{subfigure}
+    \caption{Evolution of persistence diagrams in the multiclass setting.}
+    \label{fig:multiclass-pds}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \resizebox{\textwidth}{!}{
+        \input{plots/all-class-scatter-wass.pgf}
+    }
+    \caption{Relationship between Wasserstein distance and accuracy across different model 
+    architectures in multiclass classification. Connected points show consecutive epochs for 
+    each model. Note the particularly clear indication of overfitting in the overfit model's 
+    trajectory.}
+    \label{fig:all-classes-scatter-wass}
+\end{figure}
+
+Figure~\ref{fig:all-classes-scatter-wass} reveals a strong correlation between Wasserstein 
+distance and model accuracy across all model variants. A similar correlation exists for total 
+bar length (Figure~\ref{fig:all-classes-scatter-tbl}), though with more noise in
+the measurements. The relationship appeasrs even stronger than in binary
+classification, with an average $R^2$ value of 0.81 for Wasserstein distance
+across all model variants. This stronger correlation likely results from the
+richer topological information captured in the multiclass setting.
+Notably, the Wasserstein distance for the overfit model increases when the
+accuracy of the model decreases. This suggests that overfitting results in
+topological changes in the decision boundary, which would imply that overfitting
+can be detected by looking for increases in the Wasserstein distance.
+
+% Additionally, we observe high variance of Wasserstein distances at low accuracies,
+% and almost no variance at high accuracies. This suggests that while there are
+% many ways for a model to perform poorly, well-performing models tend to yield
+% similar decision boundaries from a topological perspective. This convergence to 
+% similar topological structures happens regardless of model architecture or size, 
+% indicating that these structures might represent optimal decision boundaries for 
+% the given classification task.
+
+The multiclass approach offers several advantages over binary decomposition. Beyond preserving 
+more topological information, it provides more efficient evaluation, requiring only one analysis 
+per epoch instead of $\binom{N}{2}$ binary comparisons. The higher point density in persistence 
+diagrams also enables more robust statistical analysis.
+
+An important consideration for our approach is how well it scales with dataset 
+dimensionality. While MNIST and FashionMNIST images have 784 dimensions, CIFAR-10 
+presents a more challenging scenario with 3072 dimensions due to its larger resolution 
+and three color channels. Initial experiments on CIFAR-10 using 2000 points (the same 
+sample size used for MNIST) showed significantly weaker correlations between topological 
+metrics and model accuracy, as shown in Figure~\ref{fig:all-classes-scatter-cifar-wass}
+and Figure~\ref{fig:all-classes-scatter-cifar-tbl}. This 
+degradation can be attributed to the increased sparsity of points in the higher-dimensional 
+space --- the same number of points must cover nearly four times as many dimensions. 
+However, when we increased the sample size to 8000 points, the correlation became much 
+stronger ($R^2 = 0.69$), as shown in Figure~\ref{fig:all-classes-scatter-cifar-wass-manypoints},
+approaching the levels observed for MNIST. This suggests that our method remains
+effective in higher dimensions, but requires more points to build a
+representative simplicial complex. This relationship between dimensionality and
+required sample size aligns with known challenges in high-dimensional data
+analysis, often referred to as the \emph{curse of dimensionality}.
+
+\begin{figure}
+    \centering
+    \resizebox{\textwidth}{!}{
+        \input{plots/all-class-cifar-wass.pgf}
+    }
+    \caption{Relationship between Wasserstein distance and accuracy across different model 
+    architectures in multiclass classification on the CIFAR-10 dataset with 2000
+    points. Connected points show consecutive epochs for each model.}
+    \label{fig:all-classes-scatter-cifar-wass}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \resizebox{\textwidth}{!}{
+        \input{plots/all-class-cifar-p800-wass.pgf}
+    }
+    \caption{Relationship between Wasserstein distance and accuracy across different model 
+    architectures in multiclass classification on the CIFAR-10 dataset with 8000
+    points. Connected points show consecutive epochs for each model.}
+    \label{fig:all-classes-scatter-cifar-wass-manypoints}
+\end{figure}
+
+\section{Topology of the training decision boundary}
+
+While our previous analysis in sections~\ref{sec:binary} and
+\ref{sec:multiclass} focused on test data, examining the topology of decision
+boundaries on training data could provide valuable insights. Given the strong
+correlation between topological metrics and test accuracy, we investigate
+whether these metrics computed on training data could help assess model quality
+without requiring a separate test set, potentially enabling detection of
+overfitting and underfitting.
+
+\begin{figure}
+    \centering
+    \resizebox{\textwidth}{!}{
+        \input{plots/all-class-scatter-train-wass.pgf}
+    }
+    \caption{Relationship between test accuracy and Wasserstein distance
+    computed on training data across different model architectures.}
+    \label{fig:all-classes-scatter-train-wass}
+\end{figure}
+
+Figure~\ref{fig:all-classes-scatter-train-wass} shows the relationship between
+model test accuracy and the Wasserstein distance computed on the \emph{training}
+dataset. Comparing it to Figure~\ref{fig:all-classes-scatter-wass}, we see that
+while the correlation is not as strong and the measurements show more variance,
+there remains a clear relationship between training set topology and test
+performance. This suggests that topological metrics computed during training
+could serve as early indicators of model quality, without the need to use a
+separate test set. This would allow training models on all available data
+without sacrificing the ability to evaluate their generalization.
+
+As in our previous experiments, the total bar length metric (shown in
+Figure~\ref{fig:all-classes-scatter-train-tbl}) exhibits similar trends but with
+significantly more noise, making Wasserstein distance a more reliable indicator
+of model quality.
+
+\section{Discussion and Future Work}
+
+Our results demonstrate that topological analysis provides valuable insights
+into the behavior of neural network classifiers. The strong correlation between
+topological metrics and model accuracy suggests that well-performing models
+develop similar topological structures in their decision boundaries. This is
+particularly evident in our multiclass analysis, where high-accuracy models
+converge to similar Wasserstein distances despite having different
+architectures.
+
+The observation that topological metrics computed on training data correlate
+with test performance, albeit more weakly, suggests potential applications in
+model evaluation without requiring a separate test set. Furthermore, the
+increase in Wasserstein distance during overfitting indicates that topological
+analysis could help detect when a model begins to overfit, potentially before it
+becomes apparent in validation metrics.
+
+Our extension of the LVR complex to multiclass classification not only
+preserves more topological information but also proves more computationally
+efficient than binary decomposition. This efficiency gain becomes particularly
+significant for problems in high dimensions, suggesting that our approach could
+scale better to complex real-world applications.
+
+Our experiments with CIFAR-10 revealed important insights about scaling topological
+analysis to higher dimensions. While the method's effectiveness initially degraded
+when moving from MNIST to higher-dimensional CIFAR-10 data, we found
+that increasing the sample size restored the strong correlation between topological
+metrics and model performance. This suggests that topological analysis of decision
+boundaries remains viable even in high-dimensional spaces, provided we have enough
+points.
+
+Several directions for potential future research emerge from this work:
+
+\begin{enumerate}
+    \item \emph{Topological regularization}: Given the correlation between
+    topology and generalization, incorporating topological metrics into the
+    training objective could help guide models toward better decision
+    boundaries.
+    
+    \item \emph{Early stopping criteria}: The relationship between topological
+    metrics and overfitting could be developed into practical stopping criteria
+    for training.
+    
+    \item \emph{Architecture selection}: The convergence of successful models to
+    similar topological structures suggests that topological analysis could aid
+    in comparing and selecting model architectures.
+    
+    \item \emph{Relationship between input dimensionality and sample size}:
+    Investigating this relationship could help determine optimal sample sizes for
+    datasets of varying dimensionality, allowing to balance computational
+    efficiency with topological accuracy.
+\end{enumerate}

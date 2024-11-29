@@ -1,4 +1,120 @@
-\chapter{Dummy Appendix}
+\chapter{Visualization of LVR complex construction}
+\label{app:lvr}
 
-You can defer lengthy calculations that would otherwise only interrupt
-the flow of your thesis to an appendix.
+The following figures illustrate how the LVR complex captures the topology of 
+example datasets. All visualizations show the 2-skeleton (vertices, edges, and triangles) of 
+the complexes. Some 2-simplices are not shown for clarity.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\textwidth]{plots/nested_complex.jpg}
+    \caption{Evolution of the LVR complex without CC on the nested dataset as the filtration parameter 
+    increases (left to right, top to bottom).}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\textwidth]{plots/nested_complex_cc.jpg}
+    \caption{Evolution of the LVR complex with CC on the nested dataset as the filtration parameter 
+    increases (left to right, top to bottom).}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\textwidth]{plots/manyholes_complex.jpg}
+    \caption{Evolution of the LVR complex without CC on the manyholes dataset as the filtration parameter 
+    increases (left to right, top to bottom).}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\textwidth]{plots/manyholes_complex_cc.jpg}
+    \caption{Evolution of the LVR complex with CC on the manyholes dataset as the filtration parameter 
+    increases (left to right, top to bottom).}
+\end{figure}
+
+\chapter{Visualization of Dowker complex construction}
+\label{app:dowker}
+
+The following figures illustrate how the Dowker complex captures the topology of 
+example datasets. All visualizations show the 2-skeleton (vertices, edges, and triangles) of 
+the complexes. Some 2-simplices are not shown for clarity.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{plots/dowker_manyholes_complex_full.jpg}
+    \caption{Evolution of the Dowker complex without CC on the manyholes dataset as the filtration parameter 
+    increases (left to right, top to bottom).}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{plots/dowker_nested_complex_full.jpg}
+    \caption{Evolution of the Dowker complex with CC on the manyholes dataset as the filtration parameter 
+    increases (left to right, top to bottom).}
+\end{figure}
+
+\chapter{Binary classification topological metrics}
+\label{app:baseline-per-class-metrics}
+
+The following figures provide comprehensive results for binary classification experiments 
+across all class pairs.
+
+\begin{figure}
+    \centering
+    \resizebox{\textwidth}{!}{
+        \input{plots/baseline-scatter-tbl.pgf}
+    }
+    \caption{Relationship between accuracy and total bar length difference
+    across different class pairs.}
+    \label{fig:baseline-binary-scatter-tbl}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{plots/baseline-wass-montage.jpg}
+    \caption{Evolution of Wasserstein distances during training for all binary classification 
+    pairs.}
+    \label{fig:baseline-wass-montage}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{plots/baseline-tbl-montage.jpg}
+    \caption{Evolution of total bar lengths during training for all binary classification 
+    pairs. }
+    \label{fig:baseline-tbl-montage}
+\end{figure}
+
+\chapter{Multiclass classification topological metrics}
+
+\begin{figure}
+    \centering
+    \resizebox{\textwidth}{!}{
+        \input{plots/all-class-scatter-tbl.pgf}
+    }
+    \caption{Relationship between accuracy and total bar length difference in different models.}
+    \label{fig:all-classes-scatter-tbl}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \resizebox{\textwidth}{!}{
+        \input{plots/all-class-scatter-train-tbl.pgf}
+    }
+    \caption{Relationship between test accuracy and total bar length difference
+    computed on training data.}
+    \label{fig:all-classes-scatter-train-tbl}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \resizebox{\textwidth}{!}{
+        \input{plots/all-class-cifar-tbl.pgf}
+    }
+    \caption{Relationship between total bar length difference and accuracy
+    across different model architectures in multiclass classification on the
+    CIFAR-10 dataset with 2000 points. Connected points show consecutive epochs
+    for each model.}
+    \label{fig:all-classes-scatter-cifar-tbl}
+\end{figure}

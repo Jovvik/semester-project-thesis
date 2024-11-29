@@ -1,49 +1,15 @@
-\chapter{Related work and theoretical background}
+\chapter{Theoretical background}
+\label{chap:background}
 
-\section{Related work}
+This chapter introduces the mathematical concepts and tools needed for
+topological analysis of decision boundaries. We begin with \emph{persistent homology},
+a fundamental tool for measuring topological features at different scales. We
+then present several types of simplicial complexes that can be used to capture
+the topology of decision boundaries, discussing their properties and
+relationships to each other. The ultimate goal is to compute persistent homology
+of decision boundaries using these complexes.
 
-Topological data analysis (TDA) has been applied to neural network research using a wide range of methods.
-As outlined in~\cite{ballester2024topologicaldataanalysisneural}, these approaches can be broadly categorized
-according to which aspect of neural network they analyze:
-\begin{enumerate}
-    \item \emph{Structure of neural networks}, such as in~\cite{Chowdhury_2019},
-    where two special homology groups are computed for graphs that represent feed-forward neural networks.
-    \item \emph{Decision regions and boundaries}. In~\cite{ramamurthy2018topologicaldataanalysisdecision},
-    the labeled \v{C}ech and Vietoris-Rips complexes are introduced to capture homology of neural network decision boundaries.
-    This approach is augmented with active learning in~\cite{NEURIPS2020_5f146156} to improve sampling efficiency.
-    Several other studies employ the \emph{graph-based topological data analysis} (GTDA) algorithm~\cite{Liu2023},
-    an extension of the Mapper algorithm~\cite{:10.2312/SPBG/SPBG07/091-100} that handles graph inputs and generates Reeb networks.
-    \label{item:decision}
-    \item \emph{Activations and weights}.
-    Methods in this category apply either the Mapper algorithm~\cite{8999218,love2020topological,9174770},
-    or persistent homology~\cite{8953424,gebhart2019characterizingshapeactivationspace,https://doi.org/10.3929/ethz-b-000327207}
-    to neural network weights or activations.
-    \item \emph{Training dynamics and loss functions}.
-    In~\cite{nguyen2019connectedsublevelsetsdeep} the number of connected components and local valleys
-    of a convex optimization target are studied in the context of fully connected feed-forward neural networks.
-    In~\cite{_im_ekli_2021} and~\cite{birdal2021intrinsicdimensionpersistenthomology},
-    the fractal dimensions of weight trajectories of neural networks during training are studied.
-    \label{item:training}
-\end{enumerate}
-
-This research bridges the categories~\ref{item:decision} and~\ref{item:training},
-presenting a novel investigation that combines topological analysis of decision boundaries
-with neural network training dynamics.
-
-\section{Theoretical background}
-
-\subsection{Persistent homology}
-
-Persistent homology serves as a fundamental tool in TDA that tracks how topological
-features (connected components, holes) appear and disappear as a parameter is varied.
-Given a filtered simplicial complex $(K_\epsilon)_{\epsilon \geq 0}$, persistent homology computes pairs
-$(\epsilon_b, \epsilon_d)$ where a feature appears at $\epsilon_b$ (birth) and
-disappears at $\epsilon_d$ (death).
-
-These birth--death pairs can be visualized in a \emph{persistence diagram}, where each pair
-is shown as a point in the Euclidean plane. The distance of a point from the diagonal
-indicates the feature's persistence, which is often interpreted as a measure of
-its significance. Figure~\ref{fig:pd} shows an example of a persistence diagram.
+\section{Persistent homology}
 
 \begin{figure}
     \centering
@@ -58,109 +24,62 @@ its significance. Figure~\ref{fig:pd} shows an example of a persistence diagram.
         % Diagonal
         \draw[dashed] (0,0) -- (6,6);
         
+        % Point coords
+        \coordinate (p1) at (1,3);
+        \coordinate (p2) at (2,4);
+        \coordinate (p3) at (3,5);
+        \coordinate (p4) at (1.5,2);
+        
+        % Lines to axes
+        \draw[dashed,gray] (p1) -- (1,0) node[below,black] {$b_1$};
+        \draw[dashed,gray] (p1) -- (0,3) node[left,black] {$d_1$};
+        \draw[dashed,gray] (p2) -- (2,0) node[below,black] {$b_2$};
+        \draw[dashed,gray] (p2) -- (0,4) node[left,black] {$d_2$};
+        \draw[dashed,gray] (p3) -- (3,0) node[below,black] {$b_3$};
+        \draw[dashed,gray] (p3) -- (0,5) node[left,black] {$d_3$};
+        \draw[dashed,gray] (p4) -- (1.5,0) node[below,black] {$b_4$};
+        \draw[dashed,gray] (p4) -- (0,2) node[left,black] {$d_4$};
+
         % Points
-        \fill (1,3) circle (2pt) node[above right] {$p_1$};
-        \fill (2,4) circle (2pt) node[above right] {$p_2$};
-        \fill (3,5) circle (2pt) node[above right] {$p_3$};
-        \fill (1.5,2) circle (2pt) node[above right] {$p_4$};
+        \fill (p1) circle (2pt) node[above right] {$p_1$};
+        \fill (p2) circle (2pt) node[above right] {$p_2$};
+        \fill (p3) circle (2pt) node[above right] {$p_3$};
+        \fill (p4) circle (2pt) node[above right] {$p_4$};
     \end{tikzpicture}
-    \caption{An example of a persistent diagram.}
+    \caption{An example of a persistent diagram. A point $p_i$ is born at $b_i$ and dies at $d_i$.}
     \label{fig:pd}
 \end{figure}
 
-\subsection{Labeled \v{C}ech complex}
+Persistent homology serves as a fundamental tool in TDA that tracks how
+topological features (connected components, holes) appear and disappear as a
+parameter is varied~\cite{edelsbrunner2010computational}.  Given a filtered
+simplicial complex $(K_\epsilon)_{\epsilon \geq 0}$, persistent homology
+computes pairs $(b_i, d_j)$ where a feature appears at
+$\epsilon = b_i$ (birth) and disappears at $\epsilon = d_i$ (death).
 
-\begin{definition}[Labeled \v{C}ech (L\v{C}) complex, \cite{ramamurthy2018topologicaldataanalysisdecision}]
-    Given a set of points \(X\), a reference set \(Y\), and parameters \(\varepsilon\) and \(\gamma\),
-    the \emph{labeled \v{C}ech complex} contains
-    an \(n\)-simplex formed by points \(x_0, \dots, x_n \in X\) if and only if:
-    \begin{enumerate}
-        \item \(\bigcap_{i = 0}^n B_\varepsilon(x_i) \neq \emptyset\)
-        \item For each \(i \in (0, \dots, n)\), there exists \(y \in Y\) such that
-        \(\norm{x_i - y} \leq \gamma\).
-    \end{enumerate}
-    This simplicial complex is denoted as \(L\check{C}_{X, Y}^{\varepsilon, \gamma}\).
-\end{definition}
-In~\cite{ramamurthy2018topologicaldataanalysisdecision}, the \emph{labeled \v{C}ech filtration}
-is obtained by varying \(\varepsilon\), while keeping \(\gamma\) fixed.
+These birth--death pairs can be visualized in a \emph{persistence diagram}, where each pair
+is shown as a point in the Euclidean plane. The distance of a point from the diagonal
+indicates the feature's persistence, which is often interpreted as a measure of
+its significance. Figure~\ref{fig:pd} shows an example of a persistence diagram.
 
-In binary classification, \(X\) is set of points
-of one class, while \(Y\) is set of points of the other class.
-Then, \(L\check{C}\) captures simplices on one side of the boundary.
-This can be seen in Figure~\ref{fig:lc}.
+\section{Simplicial complexes}
 
-\begin{figure}
-    \centering
-    \resizebox{0.8\textwidth}{!}{\input{plots/lc.pgf}}
-    \caption{An example of the labeled \v{C}ech complex. Only 0- and 1-simplices are shown for clarity.}
-    \label{fig:lc}
-\end{figure}
+To study the topology of decision boundaries, we need constructions that can
+capture their structure using only finite samples from the input space. Several
+types of simplicial complexes have been developed for this purpose, each with
+its own advantages and trade-offs.
 
-\cite{ramamurthy2018topologicaldataanalysisdecision} gives conditions that provide
-a probabilistic guarantee that the $L\check{C}$ complex recovers the homology of the decision boundary.
-
-\subsection{Labeled Vietoris-Rips complex}
-
-\begin{definition}[Labeled Vietoris-Rips (LVR) complex, \cite{ramamurthy2018topologicaldataanalysisdecision}]
-    Given a set \(X\) with the set of associated labels \(c\) and a parameter \(\varepsilon\),
-    let the bipartite graph \(G_\varepsilon\) be a graph with \(X\) as its vertex set,
-    and an edge \(x_i - x_j\) be included if \(\norm{x_i - x_j} \leq \varepsilon\)
-    and \(c_i \neq c_j\). This adds all short enough edges between points in different classes.
-    After adding these edges, all 2-hop neighbors are connected to induce simplices of order 2.
-    The \emph{labeled Vietoris-Rips complex} is built using
-    the standard Vietoris-Rips induction on the resulting graph,
-    i.e. an \(n\)-simplex is added if all of its \((n - 1)\)-dimensional faces are included.
-\end{definition}
-
-\begin{figure}
-    \centering
-    \resizebox{0.8\textwidth}{!}{\input{plots/lvr.pgf}}
-    \caption{An example of the labeled Vietoris-Rips complex. Only 0- and 1-simplices are shown for clarity.}
-    \label{fig:lvr}
-\end{figure}
-
-The \emph{labeled Vietoris-Rips filtration} can be obtained by varying \(\varepsilon\).
-
-% As opposed to the L\v{C} complex, the labeled Vietoris-Rips complex 
-
-Analogous to the relationship between the standard \v{C}ech complex~\cite{Alexandroff1927}
-and the standard Vietoris-Rips complex~\cite{Vietoris1927}, the labeled \v{C}ech complex is more computationally expensive,
-while the labeled Vietoris-Rips complex is more tractable but lacks known recovery guarantees.
-While it is known that the VR and \v{C}ech complexes are log-interleaved through inclusions:
-\begin{equation}
-    \check{C}_X^\varepsilon \subseteq VR_X^\varepsilon \subseteq \check{C}_X^{2\varepsilon},
-    \label{eq:interleave}
-\end{equation}
-it is not clear how the labeled versions compare.
-
-% \todo{Maybe show why interleaving doesn't happen for labeled complexes?}
-
-\begin{definition}[Locally Scaled LVR (LS-LVR) complex, \cite{ramamurthy2018topologicaldataanalysisdecision}]
-    The \emph{LS-LVR complex} is constructed similarly to the LVR complex,
-    but with the edge \(x_i - x_j\) included in $G_\varepsilon$ if \(\norm{x_i - x_j} \leq \varepsilon \sqrt{\rho_i, \rho_j}\),
-    where \(\rho_i\) is the distance from \(x_i\) to its \(k\)-th closest neighbor,
-    with \(k\) being a fixed parameter.
-\end{definition}
-
-The LS-LVR complex aims to recover homology groups of datasets with non-uniform density
-more accuractely compared to the LVR complex.
-
-\subsection{Dowker complex}
+One such complex is the \emph{Dowker complex}, which has been used to study
+tumor microenvironments~\cite{stolz2023relationalpersistenthomologymultispecies}.
 
 \begin{definition}
     Let \(X, Y\) be sets. The \emph{Dowker complex} \(\mathcal{D}_{X, Y}^\varepsilon\)
     at parameter value \(\varepsilon\) is a simplicial complex
     with \(X\) as its vertex set, including the \(n\)-simplex
-    \(x_0, \dots, x_n\) if and only there exists a \(y \in Y\)
+    \((x_0, \dots, x_n)\) if and only if there exists \(y \in Y\)
     such that \(\norm{x_i - y} \leq \varepsilon\) for all \(i\).
 \end{definition}
 A \emph{Dowker filtration} can be obtained by varying \(\varepsilon\).
-
-The Dowker complex captures simplices on one side of the decision boundary,
-similarly to the labeled \v{C}ech complex. Indeed, by definition,
-\begin{equation}
-    L\check{C}_{X, Y}^{\varepsilon, \gamma} = \check{C}_X^\varepsilon \cap D_{X, Y}^\gamma.
-\end{equation}
 
 Although the roles of $X$ and $Y$ may appear arbitrary, the following theorem shows
 that they can be interchanged without changing the homology groups, up to isomorphism:
@@ -172,3 +91,101 @@ that they can be interchanged without changing the homology groups, up to isomor
         H_k(\mathcal{D}_{X, Y}^\varepsilon) \cong H_k(\mathcal{D}_{Y, X}^\varepsilon).
     \end{equation}
 \end{theorem}
+
+The labeled \v{C}ech complex has been introduced as a theoretical tool to study
+decision boundaries of neural networks, offering probabilistic guarantees that
+it correctly captures the topology of these
+boundaries~\cite{ramamurthy2018topologicaldataanalysisdecision}.
+
+\begin{definition}
+    Given a set of points \(X\), a reference set \(Y\), and parameters \(\varepsilon\) and \(\gamma\),
+    the \emph{labeled \v{C}ech complex} $L\check{C}_{X, Y}^{\varepsilon, \gamma}$ contains
+    an \(n\)-simplex formed by points \(x_0, \dots, x_n \in X\) if and only if:
+    \begin{enumerate}
+        \item \(\bigcap_{i = 0}^n B_\varepsilon(x_i) \neq \emptyset\)
+        \item For each \(i \in (0, \dots, n)\), there exists \(y \in Y\) such that
+        \(\norm{x_i - y} \leq \gamma\).
+    \end{enumerate}
+\end{definition}
+The \emph{labeled \v{C}ech filtration} is obtained by varying \(\varepsilon\),
+while keeping \(\gamma\) fixed. Figure~\ref{fig:lc} shows an example of a labeled
+\v{C}ech complex constructed on points from two different classes.
+
+The parameter $\varepsilon$ encodes a distance threshold within $X$,
+similarly to the \v{C}ech complex, while the parameter $\gamma$ encodes a distance threshold
+from points in $X$ to $Y$, similarly to the Dowker complex. More concretely,
+\begin{equation}
+    L\check{C}_{X, Y}^{\varepsilon, \gamma} = \check{C}_X^\varepsilon \cap D_{X, Y}^\gamma,
+\end{equation}
+where $\check{C}_X^\varepsilon$ is the \emph{\v{C}ech complex}.
+
+Both the labeled \v{C}ech complex and the Dowker complex only capture simplices
+with vertices in $X$, i.e.\ on one side of the decision boundary. This makes them
+not directly applicable to the multiclass setting, as they would only capture simplices
+on the boundary of one class, ignoring the decision boundary between the other classes.
+Moreover, both of these complexes are computationally expensive. An alternative
+approach is to use the \emph{labeled Vietoris-Rips (LVR)
+complex}~\cite{ramamurthy2018topologicaldataanalysisdecision},
+which can be applied to multiple classes and is more tractable at the cost of
+not having known recovery guarantees.
+
+\begin{figure}
+    \centering
+    \resizebox{0.8\textwidth}{!}{\input{plots/lc.pgf}}
+    \caption{An example of the labeled \v{C}ech complex. Only 0- and 1-simplices are shown for clarity.}
+    \label{fig:lc}
+\end{figure}
+
+\begin{definition}
+    Given a set of points \(X\) with associated labels \(c: X \to \{1,\ldots,k\}\) and 
+    a parameter \(\varepsilon > 0\), the \emph{labeled Vietoris-Rips complex} is constructed 
+    in three steps:
+    \begin{enumerate}
+        \item Create a graph \(G_\varepsilon\) with vertex set \(X\) by adding an edge 
+        between points \(x_i, x_j \in X\) if and only if:
+        \begin{itemize}
+            \item \(\norm{x_i - x_j} \leq \varepsilon\) (points are close enough), and
+            \item \(c(x_i) \neq c(x_j)\) (points belong to different classes)
+        \end{itemize}
+        
+        \item Add edges between all 2-hop neighbors in \(G_\varepsilon\), i.e.\ add an 
+        edge between \(x_i\) and \(x_k\) if there exists \(x_j\) such that both 
+        \((x_i, x_j)\) and \((x_j, x_k)\) are edges in \(G_\varepsilon\).
+        
+        \item Build higher-dimensional simplices by adding an \(n\)-simplex whenever all 
+        of its \((n-1)\)-dimensional faces are present in the complex, similarly to the 
+        standard Vietoris-Rips complex.
+    \end{enumerate}
+\end{definition}
+
+\begin{figure}
+    \centering
+    \resizebox{0.8\textwidth}{!}{\input{plots/lvr.pgf}}
+    \caption{An example of the labeled Vietoris-Rips complex. Only 0- and 1-simplices are shown for clarity.}
+    \label{fig:lvr}
+\end{figure}
+
+The \emph{labeled Vietoris-Rips filtration} can be obtained by varying \(\varepsilon\).
+An example of the LVR complex constructed on the same point set is shown in
+Figure~\ref{fig:lvr}. Comparing it to Figure~\ref{fig:lc}, we can see that
+the LVR complex captures simplices that cross the boundary between the two classes,
+while the labeled \v{C}ech complex only captures simplices on one side of the boundary.
+
+While it is known that the VR and \v{C}ech complexes are log-interleaved through inclusions~\cite{edelsbrunner2010computational}:
+\begin{equation}
+    \check{C}_X^\varepsilon \subseteq VR_X^\varepsilon \subseteq \check{C}_X^{2\varepsilon},
+    \label{eq:interleave}
+\end{equation}
+it is not clear how the labeled versions compare.
+
+The \emph{locally scaled labeled Vietoris-Rips complex (LS-LVR complex)} aims to
+recover homology groups of datasets with non-uniform density more accuractely
+compared to the LVR complex.
+
+\begin{definition}
+    The \emph{LS-LVR complex} is constructed similarly to the LVR complex,
+    but with the distance constraint for an edge \((x_i, x_j)\) being given
+    by \(\norm{x_i - x_j} \leq \varepsilon \sqrt{\rho_i, \rho_j}\),
+    where \(\rho_i\) is the distance from \(x_i\) to its \(k\)-th closest neighbor,
+    with \(k\) being a fixed parameter.
+\end{definition}

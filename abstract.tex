@@ -1,12 +1,36 @@
 \begin{abstract}
-    This project investigates the application of topological data analysis (TDA)
-    to the study of decision boundaries in machine learning classifiers in general,
-    and how these boundaries evolve during training in particular.
-    Decision boundaries partition the input space into regions corresponding to
-    different class labels, and understanding their topology can provide deep
-    insights into model behavior, particularly regarding overfitting and
-    underfitting. Building upon the Labeled Vietoris-Rips complex framework,
-    which was previously limited to binary classification, we extend it to
-    handle multiclass classification problems and propose topological metrics
-    that can be used to quantify the fitness of a classifier.
+    Machine learning classifiers partition their input space into regions
+    corresponding to different class labels. The boundaries between these regions,
+    known as \emph{decision boundaries}, play a crucial role in determining how a
+    classifier generalizes to unseen data~\cite{elsayed2018largemargindeepnetworks}.
+    While traditional metrics like accuracy and loss provide aggregate measures
+    of performance, they offer limited insight into how models make their
+    decisions.  Understanding the geometric and topological properties of these
+    boundaries can provide valuable insights into classifier behavior,
+    particularly regarding phenomena like overfitting and underfitting.
+    
+    This project investigates the application of \emph{topological data analysis} (TDA)
+    to study decision boundaries in machine learning classifiers and how these
+    boundaries evolve during training. We build upon the \emph{labeled
+    Vietoris-Rips} (LVR) complex framework, which was previously limited to
+    binary classification, extending it to handle multiclass classification
+    problems without the information loss inherent in decomposing multiclass
+    problems into binary ones. Our multiclass extension of the LVR complex not
+    only preserves more topological information but also proves more
+    computationally efficient than binary decomposition, suggesting better
+    scalability to complex datasets.
+
+    We analyze how topological features of decision boundaries change throughout
+    the training process, establishing connections between topological metrics
+    and model performance.  Our results demonstrate that topological metrics
+    strongly correlate with model accuracy across different architectures and
+    datasets. We show that well-performing models develop similar topological
+    structures in their decision boundaries, regardless of their architecture.
+    Additionally, we find that topological metrics computed on training data
+    correlate with test performance, suggesting potential applications in model
+    evaluation without requiring a separate test set.
+
+    We propose and evaluate \emph{circumcircle filtering}, a technique to
+    improve the recovery of the LVR complex, and demonstrate why it becomes
+    unnecessary in high-dimensional spaces of real-world datasets. 
 \end{abstract}

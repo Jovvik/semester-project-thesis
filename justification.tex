@@ -1,19 +1,280 @@
-\chapter{Justification}
+\chapter{Synthetic 2D data experiments}
+\label{chap:synthetic}
 
-\section{Synthetic 2D and 3D data experiments}
+This chapter evaluates our topological analysis methods on synthetic 2D datasets
+where we can visually verify our results and understand the challenges that
+arise. We first demonstrate that the LVR complex can produce spurious
+topological features by allowing simplices to cross decision boundary multiple
+times. We then propose and evaluate two potential solutions to this limitation:
+circumcircle filtering and the Dowker complex.
 
-\begin{itemize}
-    % \item Describe the data (or do it in the methodology?)
-    \item Show what isn't captured correctly
-    \item Show that CC filtering or the Dowker complex can help
-\end{itemize}
+\section{Initial results}
 
-In \todo{ref}, we can see that the LVR complex includes edges and triangles that
-cross the decision boundary multiple times. This is a problem, because these edges and triangles
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/nested_ph.pgf}
+        }
+        \caption{Without circumcircle filtering}
+        \label{fig:nested_ph_no_cc}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/nested_ph_cc.pgf}
+        }
+        \caption{With circumcircle filtering}
+        \label{fig:nested_ph_cc}
+    \end{subfigure}
+    \caption{Persistence diagrams of the LVR complex on the nested dataset with and without circumcircle filtering.}
+    \label{fig:nested_ph}
+\end{figure}
 
 
-\section{Sampling stability on MNIST}
+To assess how well the LVR complex captures the topology of the decision boundary,
+we have created two synthetic datasets. Because the points in these datasets are
+distributed uniformly, we used the LVR complex rather than the LS-LVR complex.
 
-Show that with the default parameters, the persistence diagrams change too much under sampling.
-Show it's stable under N=10.
+On the nested dataset, we would expect to see five 1-dimensional homology
+classes that persist indefinitely. However, as shown in
+Figure~\ref{fig:nested_ph_no_cc}, the persistence diagram reveals more such
+classes than expected, and some of them do not persist until infinity.
+By examining the 2-skeleton of the complex in Figure~\ref{fig:nested_complex_no_cc},
+we see that the LVR complex includes edges and triangles that cross the decision
+boundary multiple times. This is a problem, because this splits a true homology class
+into several classes, some of which may not persist until infinity.
 
+\section{Circumcircle filtering}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.32\textwidth}
+        \begin{tikzpicture}[scale=0.5]
+            \coordinate (A) at (0,0);
+            \coordinate (B) at (5,2);
+            \coordinate (C) at (3.5,-1.5); 
+
+            % circle center
+            \coordinate (M) at ($(A)!0.5!(B)$);
+
+            % triangle
+            \draw[thick] (A) -- (B) -- (C) -- cycle;
+            \draw ($(C)!0.1!(B)$) -- ($(C) + (-0.2,0.5)$) -- ($(C)!0.1!(A)$);
+
+            % circle
+            \pgfmathsetmacro{\radius}{sqrt((5)^2 + (2)^2)/2 * 0.5}
+            \draw[fill=blue!50, fill opacity=0.3] (M) circle (\radius);
+
+            \node[left]  at (A) {$A$};
+            \node[right] at (B) {$B$};
+            \node[below] at (C) {$C$};
+        \end{tikzpicture}
+        \caption{Small filtering region at $\theta = 1.3$}
+    \end{subfigure}
+    \begin{subfigure}{0.32\textwidth}
+        \begin{tikzpicture}[scale=0.5]
+            \coordinate (A) at (0,0);
+            \coordinate (B) at (5,2);
+            \coordinate (C) at (3.5,-1.5); 
+
+            % circle center
+            \coordinate (M) at ($(A)!0.5!(B)$);
+
+            % triangle
+            \draw[thick] (A) -- (B) -- (C) -- cycle;
+            \draw ($(C)!0.1!(B)$) -- ($(C) + (-0.2,0.5)$) -- ($(C)!0.1!(A)$);
+
+            % circle
+            \pgfmathsetmacro{\radius}{sqrt((5)^2 + (2)^2)/2}
+            \draw[fill=blue!50, fill opacity=0.3] (M) circle (\radius);
+
+            \node[left]  at (A) {$A$};
+            \node[right] at (B) {$B$};
+            \node[below] at (C) {$C$};
+        \end{tikzpicture}
+        \caption{Medium-sized filtering region at $\theta = 1.0$}
+    \end{subfigure}
+    \begin{subfigure}{0.32\textwidth}
+        \begin{tikzpicture}[scale=0.5]
+            \coordinate (A) at (0,0);
+            \coordinate (B) at (5,2);
+            \coordinate (C) at (3.5,-1.5); 
+
+            % circle center
+            \coordinate (M) at ($(A)!0.5!(B)$);
+
+            % triangle
+            \draw[thick] (A) -- (B) -- (C) -- cycle;
+            \draw ($(C)!0.1!(B)$) -- ($(C) + (-0.2,0.5)$) -- ($(C)!0.1!(A)$);
+
+            % circle
+            \pgfmathsetmacro{\radius}{sqrt((5)^2 + (2)^2)/2 * 1.5}
+            \draw[fill=blue!50, fill opacity=0.3] (M) circle (\radius);
+
+            \node[left]  at (A) {$A$};
+            \node[right] at (B) {$B$};
+            \node[below] at (C) {$C$};
+        \end{tikzpicture}
+        \caption{Large filtering region at $\theta = 0.7$}
+    \end{subfigure}
+    \caption{Circumcircle filtering with different values of $\theta$. The light blue circle 
+    shows the region where any point's presence would cause edge $AB$ to be removed. A larger 
+    value of $\theta$ leads to a smaller filtering region, while a smaller $\theta$ increases the 
+    region and thus leads to more aggressive filtering.}
+    \label{fig:cc}
+\end{figure}
+
+To address this drawback, we propose \emph{circumcircle filtering} (CC).
+This method removes an edge between vertices \(A\) and \(B\) (and all higher simplices containing this edge) from the simplicial complex
+if there exists a vertex \(C\) such that $\norm{A - B}^2 > (\norm{A - C}^2 + \norm{B - C}^2) \theta$,
+where \(\theta \in [0, 2]\) is a parameter.
+Intuitively, this approach aims to make a simplicial complex more similar
+to the Alpha complex~\cite{edelsbrunner2010computational} by removing some (but not all) non-Delaunay edges.
+The set of edges that should be removed with CC can be computed in
+$\mathcal{O}(n^2 \cdot d)$ time and $\mathcal{O}(n^2)$ memory by computing all
+pairwise distances of points. These computational costs are neglible compared
+to building the LVR complex and computing its persistent homology.
+
+The CC method can be visualized by considering the plane with the points $A, B$ and $C$ in Figure~\ref{fig:cc}.
+At $\theta = 1$, an edge $AB$ is removed if $\norm{A - B}^2 > \norm{A - C}^2 + \norm{B - C}^2$,
+i.e.\ if $C$ lies inside a circle which has $AB$ as its diameter,
+hence the name of \emph{circumcircle filtering}.
+Increasing or decreasing the value of $\theta$ decreases or respectively increases the size of the circle, keeping the center the same.
+At $\theta = 0$, all edges are removed, because $\norm{A - B}^2 > 0$ always holds,
+and at $\theta = 2$, no edges are removed, because
+\begin{align}
+    2 \cdot (\norm{A - C}^2 + \norm{B - C}^2)
+    & \geq  \norm{A - C}^2 + \norm{B - C}^2 + 2\norm{A - B}\norm{B - C} \\
+    & = (\norm{A - C} + \norm{B - C})^2,
+\end{align}
+and
+\begin{equation}
+    \norm{A - B}^2 \leq (\norm{A - C} + \norm{B - C})^2
+\end{equation}
+by the triangle inequality.
+
+For the 2D datasets, we set $\theta = 1.4$, as with lower values almost no
+simplices were being filtered, and higher values filtered out too many simplices
+and the complex became very disconnected.
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{plots/nested_complex_9_no_cc.jpg}
+        \caption{Without circumcircle filtering.}
+        \label{fig:nested_complex_no_cc}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{plots/nested_complex_9_cc.jpg}
+        \caption{With circumcircle filtering}
+        \label{fig:nested_complex_cc}
+    \end{subfigure}
+    \caption{A visualisation of the 2-skeleton of the LVR complex on the nested dataset with and without circumcircle filtering. Not all 2-simplices are shown for clarity.}
+    \label{fig:nested_complex}
+\end{figure}
+
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{plots/manyholes_complex_16_no_cc.jpg}
+        \caption{Without circumcircle filtering.}
+        \label{fig:manyholes_complex_no_cc}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{plots/manyholes_complex_16_cc.jpg}
+        \caption{With circumcircle filtering}
+        \label{fig:manyholes_complex_cc}
+    \end{subfigure}
+    \caption{A visualisation of the 2-skeleton of the LVR complex on the manyholes dataset with and without circumcircle filtering. Not all 2-simplices are shown for clarity.}
+    \label{fig:manyholes_complex}
+\end{figure}
+
+In Figure~\ref{fig:nested_ph_cc}, we see that applying CC lowers the number of
+homology classes and removes all classes that do not persist until infinity.
+Examining the 2-skeleton of the complex in Figure~\ref{fig:nested_complex_cc},
+we see that almost all simplices that cross the decision boundary multiple times
+are removed.  We can also see that CC has an added benefit of reducing the
+number of simplices in the complex, which can help reduce the computational cost
+of constructing the complex and computing its persistence diagram.
+
+In Figure~\ref{fig:manyholes_complex} and Figure~\ref{fig:manyholes_ph}, we
+observe a similar effect on the manyholes dataset, where without CC the complex
+contains spurious holes, such as the one around the
+point $(0.5, - 0.1)$. Applying CC removes these spurious holes.
+A visualisation of how LVR changes as the filtration parameter is varied
+with and without CC can be found in Appendix~\ref{app:lvr}.
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/manyholes_ph.pgf}
+        }
+        \caption{Without circumcircle filtering}
+        \label{fig:manyholes_ph_no_cc}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/manyholes_ph_cc.pgf}
+        }
+        \caption{With circumcircle filtering}
+        \label{fig:manyholes_ph_cc}
+    \end{subfigure}
+    \caption{Persistence diagrams of the LVR complex on the manyholes dataset with and without circumcircle filtering.}
+    \label{fig:manyholes_ph}
+\end{figure}
+
+\section{Dowker complex}
+\label{sec:dowker}
+
+Alternatively, the \emph{Dowker complex} can be used to combat the same drawback.
+However, computing it na\"ively up to 3-simplices requires \(\mathcal{O}(n^3 \cdot d)\)
+runtime and \(\mathcal{O}(n^3)\) memory for \(n\) points in \(\R^d\),
+which is prohibitively expensive for the image datasets we consider.
+This approach may be more tractable within a more sample-efficient framework,
+such as one proposed in~\cite{li2020finding}.
+Additionally, the Dowker complex is not applicable to the multiclass setting.
+
+In Figure~\ref{fig:dowker_complex}, we show the Dowker complex on the nested and manyholes datasets.
+Due to the computational cost of constructing the Dowker complex, we only use 300 points from each dataset.
+We can see that the problem with simplices crossing the decision boundary multiple times is present in the Dowker complex as well.
+A visualisation of how the Dowker complex changes as the filtration parameter is varied
+can be found in Appendix~\ref{app:dowker}.
+The persistence diagrams shown in Figure~\ref{fig:dowker_ph} similarly demonstrate that the Dowker complex does not capture the topology of the decision boundary well.
+% \lipsum[1]
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{plots/dowker_nested_complex.jpg}
+        \caption{Nested dataset}
+        \label{fig:dowker_manyholes_complex_no_cc}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{plots/dowker_manyholes_complex.jpg}
+        \caption{Manyholes dataset}
+        \label{fig:dowker_manyholes_complex_cc}
+    \end{subfigure}
+    \caption{A visualisation of the 2-skeleton of the Dowker complex on the nested and manyholes datasets.}
+    \label{fig:dowker_complex}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/dowker_nested_ph.pgf}
+        }
+        \caption{Nested dataset}
+        \label{fig:dowker_ph_nested}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/dowker_manyholes_ph.pgf}
+        }
+        \caption{Manyholes dataset}
+        \label{fig:dowker_ph_manyholes}
+    \end{subfigure}
+    \caption{Persistence diagrams of the Dowker complex on the nested and manyholes datasets.}
+    \label{fig:dowker_ph}
+\end{figure}

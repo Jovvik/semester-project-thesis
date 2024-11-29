@@ -1,45 +1,95 @@
 \chapter{Introduction}
 
-\section{Background}
+Deep learning models have become increasingly complex, making it challenging to
+understand how they make their decisions. While metrics like accuracy and loss
+help evaluate model performance, they provide limited insight into the
+decision-making process.
 
-\begin{itemize}
-    \item ML is cool
-    \item TDA is cool
-    \item Decision boundaries are cool
-    \item Why the intersection of these three may be cool
-\end{itemize}
+One promising approach to understanding neural network behavior is to study the
+geometric and topological properties of their decision boundaries --- the surfaces
+that separate different class regions in the input space. These boundaries
+encode fundamental information about how a model partitions the input space and
+how it will classify previously unseen data points. Research has demonstrated
+that geometric properties of decision boundaries, such as their margins,
+strongly influence a model's ability to generalize~\cite{elsayed2018largemargindeepnetworks}.
 
-% \subsection{Decision boundaries in machine learning}
+Topological data analysis (TDA) offers a powerful framework for studying these
+boundaries. By capturing properties that are invariant under continuous
+deformation, topology can help us understand the essential structure of decision
+boundaries while ignoring irrelevant geometric details. Moreover, modern
+computational topology provides tools like persistent homology that can quantify
+topological features at different scales.
 
-% A classifier $f: \mathcal{R} \to \{1, \ldots, N\}$ partitions the input space $\mathcal{R}$ into $N$ regions
-% corresponding to different class predictions.
-% The decision boundary is the union of the boundaries of the regions, i.e., the
-% set of points where the classifier changes its decision.
+Our key contributions include:
 
-% The geometry and topology of decision boundaries are closely related to the classifier's behavior.
-% Complex decision boundaries may indicate overfitting, while oversimplified boundaries
-% may suggest underfitting. However, quantifying this complexity remains challenging,
-% particularly in high-dimensional spaces.
+\begin{enumerate}
+    \item We extend the Labeled Vietoris-Rips framework from binary to
+    multiclass classification, avoiding the information loss inherent in
+    decomposing multiclass problems into binary ones.
 
-% \subsection{Topological Data Analysis}
+    \item We propose and evaluate circumcircle filtering, a technique to improve
+    topology recovery in low dimensions, and analyze why it becomes unnecessary
+    in high-dimensional real-world datasets.
 
-% Topological Data Analysis (TDA) provides tools for studying the shape and structure
-% of data through the lens of topology. Unlike geometric approaches that rely on
-% distances and angles, topological methods focus on qualitative features such as
-% connected components and holes that persist across different scales.
+    \item We analyze how topological features of decision boundaries change
+    throughout the training process, establishing connections between
+    topological metrics and model performance.
 
-% A key insight of TDA is that topological features can be meaningfully computed
-% from discrete samples of continuous objects. This is particularly relevant
-% for analyzing decision boundaries, which are typically only accessible through
-% point samples.
-% \todo{Maybe this goes into introduction}
+    \item We investigate whether topological metrics computed on training data
+    can serve as indicators of model quality, potentially enabling detection of
+    overfitting without requiring a separate validation set.
+\end{enumerate}
 
-\section{Objectives}
+\section{Related work}
 
-Yoink from the proposal.
+Topological data analysis has been applied to neural network research using a
+wide range of methods. Recent surveys have categorized these approaches
+according to which aspect of neural networks they
+analyze~\cite{ballester2024topologicaldataanalysisneural}:
 
-\begin{itemize}
-    \item Explore homological changes in decision boundaries during model training.
-    \item Investigate connections between topological features and overfitting/underfitting.
-    \item Extend the Labeled Vietoris-Rips complex to multiclass classification.
-\end{itemize}
+\begin{enumerate}
+    \item \emph{Structure of neural networks}. Some researchers have computed
+    two special homology groups for graphs that represent feed-forward neural
+    networks to anaylze their structural properties.
+
+    \item \emph{Decision regions and boundaries}.
+    The labeled \v{C}ech and Vietoris-Rips complexes were developed to capture
+    homology of neural network decision
+    boundaries~\cite{ramamurthy2018topologicaldataanalysisdecision}. Later work
+    enhanced this approach with active learning to improve sampling
+    efficiency~\cite{NEURIPS2020_5f146156}. Several studies have also explored
+    using the \emph{graph-based topological data analysis} (GTDA) algorithm, which
+    extends the Mapper algorithm to handle graph inputs and generate Reeb
+    networks~\cite{Liu2023,:10.2312/SPBG/SPBG07/091-100}.
+    \label{item:decision}
+
+    \item \emph{Activations and weights}.
+    Methods in this category apply either the Mapper
+    algorithm~\cite{8999218,9174770,love2020topological},
+    or persistent
+    homology~\cite{8953424,gebhart2019characterizingshapeactivationspace,https://doi.org/10.3929/ethz-b-000327207}
+    to neural network weights or activations.
+
+    \item \emph{Training dynamics and loss functions}.
+    Researchers have studied the number of connected components and local
+    valleys of convex optimization targets in fully connected feed-forward
+    networks~\cite{nguyen2019connectedsublevelsetsdeep}.  Other work has
+    investigated the fractal dimensions of weight trajectories during 
+    training~\cite{birdal2021intrinsicdimensionpersistenthomology,_im_ekli_2021}.
+    \label{item:training}
+\end{enumerate}
+
+This research bridges the categories~\ref{item:decision} and~\ref{item:training},
+presenting a novel investigation that combines topological analysis of decision boundaries
+with neural network training dynamics.
+
+\section{Overview}
+
+The remainder of this paper is organized as follows. Chapter~\ref{chap:background} 
+provides the necessary theoretical background on persistent homology and simplicial 
+complexes. Chapter~\ref{chap:methodology} describes our experimental setup, including 
+datasets, models, and evaluation metrics. Chapter~\ref{chap:synthetic} presents our 
+initial experiments on synthetic 2D data, which motivate and validate our methodological 
+choices. Chapter~\ref{chap:results} presents our main results on real-world datasets
+and discusses their implications. Finally, we conclude with a discussion of potential 
+future research directions.

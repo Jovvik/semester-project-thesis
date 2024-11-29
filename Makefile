@@ -25,39 +25,24 @@ all:  thesis
 texfiles = $(wildcard *.tex)
 
 .PHONY: thesis
-thesis: thesis.pdf thesis.ps
+thesis: thesis.pdf
 
-thesis.pdf: $(texfiles) thesis.bbl
-	$(Q) rm -rf build/pdf/; mkdir -p build/pdf/
-	$(Q) cd build/pdf/ && TEXINPUTS="../../:$$TEXINPUTS" $(Q_LATEX) $(PDFLATEX) -interaction=nonstopmode -file-line-error ../../thesis.tex
-	$(Q) cd build/pdf/ && TEXINPUTS="../../:$$TEXINPUTS" $(Q_LATEX) $(PDFLATEX) -interaction=nonstopmode -file-line-error ../../thesis.tex
-	$(Q) ln -f build/pdf/thesis.pdf thesis.pdf
-
-thesis.dvi: $(texfiles) thesis.bbl
-	$(Q) rm -rf build/dvi/; mkdir -p build/dvi/
-	$(Q) cd build/dvi/ && TEXINPUTS="../../:$$TEXINPUTS" $(Q_LATEX) $(LATEX) -interaction=nonstopmode -file-line-error ../../thesis.tex
-	$(Q) cd build/dvi/ && TEXINPUTS="../../:$$TEXINPUTS" $(Q_LATEX) $(LATEX) -interaction=nonstopmode -file-line-error ../../thesis.tex
-	$(Q) ln -f build/dvi/thesis.dvi thesis.dvi
-
-thesis.ps: thesis.dvi
-	$(Q)$(Q_OTHER) $(DVIPS) -q thesis
-
-thesis.aux: $(texfiles)
-	$(Q) $(Q_LATEX) $(LATEX) -interaction=nonstopmode -file-line-error thesis.tex
-
-thesis.bbl: thesis.aux
-	$(Q)$(Q_OTHER) $(BIBTEX) thesis
+thesis.pdf: $(texfiles)
+	$(Q) latexmk --shell-escape -interaction=nonstopmode -file-line-error -pdf thesis.tex
 
 clean:
-	rm -rf build/
 	rm -f *.aux
 	rm -f thesis.dvi thesis.idx thesis.ind thesis.ilg thesis.out thesis.toc thesis.pdf thesis.log
 
 archive: thesis-template.zip
 
-thesis-template.zip: *.tex Makefile ETHlogo.* refs.bib
+thesis-template.zip: *.tex Makefile ETHlogo.* refs.bib *.pdf plots/*.pgf plots/*.png
 	mkdir -p thesis
-	cp `git ls-files "*.tex" Makefile "ETHlogo.*" refs.bib` thesis/
+	cp `git ls-files "*.tex" Makefile "ETHlogo.*" *.pdf refs.bib` thesis/
+	mkdir -p thesis/plots
+	cp plots/*.pgf thesis/plots/
+	cp plots/*.png thesis/plots/
 	perl -i -pe 's/\$$VERSION\$$/'"$$(git describe)/" thesis/*.tex
 	rm -f thesis-template.zip
 	zip -r thesis-template.zip thesis/
+	rm -rf thesis/
