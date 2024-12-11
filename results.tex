@@ -1,0 +1,39 @@
+\chapter{Results and discussion}
+
+\section{Sampling stability on MNIST}
+
+Show that with the default parameters, the persistence diagrams change too much under sampling.
+Show it's stable under N=10.
+
+\section{Synthetic 2D and 3D data experiments}
+
+\begin{itemize}
+    \item Describe the data (or do it in the methodology?)
+    \item Show what isn't captured correctly
+    \item Show that CC filtering or the Dowker complex can help
+\end{itemize}
+
+\section{Results on MNIST}
+
+\begin{itemize}
+    % \item Show why CC filtering is not needed for MNIST
+    \item Accuracy of the model correlates with the Wasserstein distance and the total bar length
+    \item ``Elbow'' behavior --- first epochs have high changes in topological metrics, then it's flatter.
+    Probably easier to show for Wasserstein distance, as the total bar length may be both high and low.
+    Alternatively, show the difference between total bar length and GT total bar length.
+    \item Underfitting and overfitting leads to worse topological metrics
+    \item More accurate models have better topological metrics
+    \item Size of the model doesn't impact the topological metrics (as long as the accuracy is the same for them)
+\end{itemize}
+
+\section{Results on FashionMNIST}
+
+Hopefully, just show it's the same.
+
+\section{Results on multiclass classification}
+
+Show it's the same (?)
+
+\section{Comparison of CNN and MLP}
+
+If there's anything interesting

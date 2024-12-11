@@ -1,0 +1,112 @@
+\chapter{Methodology}
+
+\section{Datasets and models}
+
+% \begin{itemize}
+%     \item MNIST, FashionMNIST and (maybe?) show the synthetic datasets
+%     \item Describe the model(s) used
+% \end{itemize}
+
+For evaulation we have used the MNIST~\cite{deng2012mnist} and FashionMNIST~\cite{xiao2017fashionmnistnovelimagedataset} datasets
+with the predefined training and testing splits.
+We have also used synthetic 2D and 3D binary classification datasets for more easily interpretable experiments.
+They are shown in Figures~\ref{fig:synthetic-datasets-2d} and \ref{fig:synthetic-datasets-3d}.
+with each dataset consisting of $10000$ points, uniformly sampled from $[ - 1, 1]^2$
+and split into training and testing sets with a ratio of $0.8:0.2$.
+
+\todo{Maybe drop 3D}
+
+\todo{Describe model for 2D/3D if we need that}
+
+For MNIST and FashionMNIST, we have used:
+\begin{enumerate}
+    \item A simple feed-forward neural network with layer sizes
+    $784, 512, 128, 16, 10$, ReLU activations and a softmax output layer.
+    % This network is later denoted as ``FC''.
+    \item A convolutional neural network with a modification of the architecture given in
+    \href{https://github.com/pytorch/examples/tree/main/mnist}{https://github.com/pytorch/examples/tree/main/mnist}.
+    The modifications are:
+    \begin{enumerate}
+        \item Addition of the \verb|scale| parameter, which allows us to change the neural network width.
+        It is a multiplicative factor for the number of channels in the convolutional layers and number of neurons in the fully connected layers.
+        \item Addition of the \verb|extra_cnn| parameter, which adds convolutional layers with $64 \cdot \verb|scale|$ channels, $3 \times 3$ kernel size,
+        1 pixel padding and stride, as well as a ReLU activation.
+        \item Additon of the \verb|extra_linear| parameter, which similarly adds a fully connected layer with $128 \cdot \verb|scale|$ neurons,
+        as well as a ReLU activation.
+    \end{enumerate}
+\end{enumerate}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.45\textwidth}
+        \resizebox{\textwidth}{!}{
+            \begin{tikzpicture}
+                \begin{axis}[
+                    enlargelimits=false,
+                ]
+                \addplot+[
+                    only marks,
+                    scatter,
+                    mark size=2pt,
+                    scatter src=explicit]
+                table[meta=class]
+                {data/2d/manyholes.dat};
+                \end{axis}
+            \end{tikzpicture}
+        }
+        \caption{Many holes dataset}
+    \end{subfigure}
+    \begin{subfigure}{0.45\textwidth}
+        \resizebox{\textwidth}{!}{
+            \begin{tikzpicture}
+                \begin{axis}[
+                    enlargelimits=false,
+                ]
+                \addplot+[
+                    only marks,
+                    scatter,
+                    mark size=2pt,
+                    scatter src=explicit]
+                table[meta=class]
+                {data/2d/nested.dat};
+                \end{axis}
+            \end{tikzpicture}
+        }
+        \caption{Nested annuli dataset}
+    \end{subfigure}
+    \caption{Synthetic 2D datasets}
+    \label{fig:synthetic-datasets-2d}
+\end{figure}
+
+\section{Metrics and evaluation}
+
+\begin{itemize}
+    \item Persistence diagrams
+    \item Wasserstein distance
+    \item Total bar length
+\end{itemize}
+
+\begin{definition}
+    A \emph{persistence diagram} is a multiset of points in $\R^2$.
+    \todo{finish}
+\end{definition}
+
+\begin{definition}
+    The \emph{Wasserstein distance} between two persistence diagrams $D_1$ and $D_2$ is defined as
+    \todo{finish}
+\end{definition}
+
+\begin{definition}
+    The \emph{total bar length} of a persistence diagram $D$ is defined as
+    \[\sum_{(b, d) \in D} d - b\]
+\end{definition}
+
+\section{Simplicial complex}
+
+\begin{itemize}
+    \item Labeled Vietoris-Rips complex
+    \item Usage of \texttt{ripser++} and \texttt{giotto-ph}
+    \item Generalization to multiclass classification
+    \item Circumcircle filtering (show why it's needed in 2D, but not in high-dim)
+    \item Dowker complex
+\end{itemize}
