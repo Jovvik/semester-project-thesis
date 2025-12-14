@@ -37,8 +37,16 @@ Our key contributions include:
 
     \item We investigate whether topological metrics computed on training data
     can serve as indicators of model quality, potentially enabling detection of
-    overfitting without requiring a separate validation set.
+    overfitting without requiring a separate test dataset.
 \end{enumerate}
+
+Our analysis reveals several important insights about neural network decision
+boundaries. First, we find that topological metrics strongly correlate with
+model accuracy, with well-performing models converging to similar topological
+structures regardless of their architecture. Second, we demonstrate that while
+our approach is effective in high dimensions, the required sample size scales
+with input dimensionality. Finally, we show that topological metrics computed on
+training data alone indicate model quality.
 
 \section{Related work}
 
@@ -85,7 +93,7 @@ with neural network training dynamics.
 
 \section{Overview}
 
-The remainder of this paper is organized as follows. Chapter~\ref{chap:background} 
+The remainder of this thesis is organized as follows. Chapter~\ref{chap:background} 
 provides the necessary theoretical background on persistent homology and simplicial 
 complexes. Chapter~\ref{chap:methodology} describes our experimental setup, including 
 datasets, models, and evaluation metrics. Chapter~\ref{chap:synthetic} presents our 

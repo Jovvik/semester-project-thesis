@@ -1,0 +1,1561 @@
+\documentclass[aspectratio=169]{beamer}
+% \usetheme{Madrid}
+\usecolortheme{default}
+
+\usepackage{amsmath}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,fit,calc}
+\usepackage{graphicx}
+\usepackage{physics}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{pgfplots}
+\usepackage{svg}
+
+\newcommand\Wider[2][3em]{%
+\makebox[\linewidth][c]{%
+  \begin{minipage}{\dimexpr\textwidth+#1\relax}
+  \raggedright#2
+  \end{minipage}%
+  }%
+}
+
+
+  \def\mathdefault#1{#1}
+  \everymath=\expandafter{\the\everymath\displaystyle}
+  \makeatletter\@ifpackageloaded{underscore}{}{\usepackage[strings]{underscore}}\makeatother
+
+\title{Topological Analysis of Decision Boundaries}
+\author{Maxim Mikhaylov with supervision by Dr. Patrick Schnider}
+\institute{ETH Zürich}
+\date{}
+
+\newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Introduction}
+    \begin{itemize}
+        \item Machine learning classifiers partition their input space into regions corresponding to different class labels $1\dots n$
+        \item The boundaries between these regions, \emph{decision boundaries}, are important for generalization
+        \item Let's use topological data analysis to study how decision boundaries evolve during training to detect overfitting
+    \end{itemize}
+    \begin{figure}
+        \textcolor{red}{Illustration of decision boundaries in 2D here.}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Theoretical background: Overfitting}
+    \begin{columns}
+        \column{0.7\textwidth}
+        \begin{itemize}
+            \item Model fits training data too closely, fails to generalize to unseen data
+            \item Performance improves on training data, but degrades on validation data
+            \item Maybe this is reflected in the topology of decision boundaries?
+        \end{itemize}
+        \column{0.3\textwidth}
+        \begin{figure}
+            \textcolor{red}{Illustration of overfitting here; plot of training acc improving, validation acc dropping.}
+        \end{figure}
+    \end{columns}
+\end{frame}
+
+% \begin{frame}[b]{Theoretical background: Machine learning}
+%     \begin{itemize}
+%         \item Learn from data without explicit programming
+%         \item<2-> Classifiers map input data $\in \mathbb{R}^d$ to class labels $\in \{1, \dots, n\}$
+%         \item<3-> Networks are a sequence of layers, data flowing from input layer to output layer
+%         \item<4-> To train, compute the gradient of the loss function with respect to the network parameters using \only<4>{\textcolor{red}{backpropagation}}\only<5->{backpropagation}, and update parameters using gradient descent
+%         \only<5-6>{\item Fully-connected layers: $y = A x + b$}
+%         \only<6>{\item Activation layers: nonlinearity for expressiveness}
+%         \item<7-> Convolutional layers: parameter-efficient filters for images / time series
+%     \end{itemize}
+%     \only<1>{\vspace*{113pt}}
+%     \only<2>{\vspace*{82pt}}
+%     \only<3>{\vspace*{77pt}}
+%     \only<4>{\vspace*{77pt}}
+%     \only<5>{\vspace*{63.5pt}}
+%     \only<6>{\vspace*{46pt}}
+%     \only<2>{
+%         \begin{tikzpicture}[
+%             node distance=1cm,
+%             box/.style={rectangle,draw},
+%             arrow/.style={->,>=stealth,thick},
+%             every text node part/.style={font=\footnotesize}
+%         ]
+        
+%         \node[box] (input) { $x \in \mathbb{R}^d$ }
+        
+%         \node[box,right=of input,text width=7cm,align=center] (nn) { Neural network }
+
+%         \node[box,right=of nn] (output) { Output $\in \{1, \dots, n\}$ }
+        
+%         \draw[arrow] (input) -- (nn);
+%         \draw[arrow] (nn) -- (output);
+        
+%         \end{tikzpicture}
+%     }
+%     \only<3>{
+%         \begin{tikzpicture}[
+%             node distance=1cm,
+%             box/.style={rectangle,draw},
+%             arrow/.style={->,>=stealth,thick},
+%             every text node part/.style={font=\footnotesize}
+%         ]
+        
+%         \node[box] (input) { $x \in \mathbb{R}^d$ }
+
+%         \node[box,right=of input,text width=7cm,align=center] (nn) { \begin{tikzpicture}
+%             \node[box] (layer1) { Layer 1 }
+%             \node[box,right=of layer1] (layer2) { Layer 2 }
+%             \node[box,right=of layer2] (layer3) { Layer 3 }
+%             \node[right=of layer3] (layer4) {}
+%             \draw[arrow] (layer1) -- (layer2);
+%             \draw[arrow] (layer2) -- (layer3);
+%             \draw[arrow] (layer3) -- (layer4);
+%         \end{tikzpicture} }
+
+%         \node[box,right=of nn] (output) { Output $\in \{1, \dots, n\}$ }
+        
+%         \draw[arrow] (input) -- (nn);
+%         \draw[arrow] (nn) -- (output);
+        
+%         \end{tikzpicture}
+%     }
+%     \only<4>{
+%         \begin{tikzpicture}[
+%             node distance=1cm,
+%             box/.style={rectangle,draw},
+%             arrow/.style={->,>=stealth,thick},
+%             every text node part/.style={font=\footnotesize}
+%         ]
+        
+%         \node[box] (input) { $x \in \mathbb{R}^d$ }
+
+%         \node[box,right=of input,text width=7cm,align=center] (nn) { \begin{tikzpicture}
+%             \node[box] (layer1) { Layer 1 }
+%             \node[box,right=of layer1] (layer2) { Layer 2 }
+%             \node[box,right=of layer2] (layer3) { Layer 3 }
+%             \node[right=of layer3] (layer4) {}
+%             \draw[arrow] (layer1) -- (layer2);
+%             \draw[arrow] (layer2) -- (layer3);
+%             \draw[arrow] (layer3) -- (layer4);
+%             \begin{scope}[transform canvas={yshift=-.4em}]
+%                 \draw[arrow,red] (layer4) -- (layer3);
+%                 \draw[arrow,red] (layer3) -- (layer2);
+%                 \draw[arrow,red] (layer2) -- (layer1);
+%             \end{scope}
+%         \end{tikzpicture} }
+
+%         \node[box,right=of nn] (output) { Output $\in \{1, \dots, n\}$ }
+        
+%         \draw[arrow] (input) -- (nn);
+%         \draw[arrow] (nn) -- (output);
+        
+%         \begin{scope}[transform canvas={yshift=-.4em}]
+%             \draw[arrow,red] (output) -- (nn);
+%             \draw[arrow,red] (nn) -- (input);
+%         \end{scope}
+
+%         \end{tikzpicture}
+%     }
+%     \only<5>{
+%         \begin{tikzpicture}[
+%             node distance=1cm,
+%             box/.style={rectangle,draw},
+%             arrow/.style={->,>=stealth,thick},
+%             every text node part/.style={font=\footnotesize}
+%         ]
+        
+%         \node[box] (input) { $x \in \mathbb{R}^d$ }
+
+%         \node[box,right=of input,text width=7cm,align=center] (nn) { \begin{tikzpicture}
+%             \node[box] (layer1) { $A_1x + b_1$ }
+%             \node[box,right=2.9em of layer1] (layer2) { Layer 2 }
+%             \node[box,right=2.9em of layer2] (layer3) { Layer 3 }
+%             \node[    right=2.9em of layer3] (layer4) {}
+%             \draw[arrow] (layer1) -- (layer2);
+%             \draw[arrow] (layer2) -- (layer3);
+%             \draw[arrow] (layer3) -- (layer4);
+%         \end{tikzpicture} }
+
+%         \node[box,right=of nn] (output) { Output $\in \{1, \dots, n\}$ }
+        
+%         \draw[arrow] (input) -- (nn);
+%         \draw[arrow] (nn) -- (output);
+        
+%         \end{tikzpicture}
+%     }
+%     \only<6>{
+%         \begin{tikzpicture}[
+%             node distance=1cm,
+%             box/.style={rectangle,draw},
+%             arrow/.style={->,>=stealth,thick},
+%             every text node part/.style={font=\footnotesize}
+%         ]
+        
+%         \node[box] (input) { $x \in \mathbb{R}^d$ }
+
+%         \node[box,right=of input,text width=7cm,align=center] (nn) { \begin{tikzpicture}
+%             \node[box] (layer1) { $A_1x + b_1$ }
+%             \node[box,right=1.8em of layer1] (layer2) { $\tanh(A_1x + b_1)$ }
+%             \node[box,right=1.8em of layer2] (layer3) { Layer 3 }
+%             \node[    right=1.8em of layer3] (layer4) {}
+%             \draw[arrow] (layer1) -- (layer2);
+%             \draw[arrow] (layer2) -- (layer3);
+%             \draw[arrow] (layer3) -- (layer4);
+%         \end{tikzpicture} }
+
+%         \node[box,right=of nn] (output) { Output $\in \{1, \dots, n\}$ }
+        
+%         \draw[arrow] (input) -- (nn);
+%         \draw[arrow] (nn) -- (output);
+        
+%         \end{tikzpicture}
+%     }
+%     \only<7>{
+%         \includegraphics[width=0.6\textwidth]{conv.png}
+%     }
+%     \only<5-6>{\vspace*{10pt}}
+% \end{frame}
+
+\begin{frame}{Theoretical background: Persistent homology}
+    \begin{itemize}
+        \only<1>{\vspace*{10pt}}
+        \only<4-5>{\vspace*{10pt}}
+        \item<1-> Simplicial complex: a collection of simplices glued together ``nicely''
+        \only<1>{
+            \includegraphics[width=0.6\textwidth]{simplicial_complex.png}
+        }
+
+        \item<2-> Homology groups of dimension $p$: measure the number of $p$-dimensional holes in a simplicial complex
+        \begin{itemize}
+            \item<3-> $p = 0$: connected components
+            \item<4-> $p = 1$: unfilled cycles
+            
+            \only<4>{\includegraphics[width=0.4\textwidth]{h1.png}}
+
+            \item<5-> $p = 2$: unfilled voids
+
+            \only<5>{\includegraphics[width=0.3\textwidth]{sphere.png}}
+        \end{itemize}
+        \item<6-> \emph{Persistent} homology: homology groups of a simplicial complex as it evolves
+        \item<7-> Example: growing balls
+        
+        \includegraphics[width=0.9\textwidth]{persistence.png}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Pipeline}
+    \resizebox{\textwidth}{!}{
+    \begin{tikzpicture}[
+        node distance=1cm,
+        box/.style={rectangle,draw},
+        arrow/.style={->,>=stealth,thick},
+        every text node part/.style={font=\footnotesize}
+    ]
+
+    % First column - Prediction pipeline
+    \node[box] (data1) {
+        \begin{tikzpicture}
+            \foreach \x/\y in {0/0.2, 0.3/0.8, 0.6/0.4, 0.8/0.9, 0.2/0.5, 0.9/0.3} {
+                \fill (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0) node[right] {x};
+            \draw[->] (0,0) -- (0,1) node[above] {y};
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of data1] {Input data};
+
+    \node[box,right=of data1] (nn) {
+        \begin{tikzpicture}[scale=0.25]
+            \foreach \x in {0,...,3} {
+                \foreach \y in {0,...,2} {
+                    \fill (\x*2,\y*1.5) circle (0.2);
+                }
+            }
+            \foreach \x in {0,...,2} {
+                \foreach \y in {0,...,2} {
+                    \foreach \z in {0,...,2} {
+                        \draw[gray,thin] (\x*2,\y*1.5) -- (\x*2+2,\z*1.5);
+                    }
+                }
+            }
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of nn] {Neural network};
+
+    \node[box,right=of nn] (pred) {
+        \begin{tikzpicture}[]
+            \foreach \x/\y/\c in {0/0.2/red, 0.3/0.8/blue, 0.6/0.4/red, 0.8/0.9/blue, 0.2/0.5/red, 0.9/0.3/blue} {
+                \fill[\c] (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0);
+            \draw[->] (0,0) -- (0,1);
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of pred, text width=2cm, align=center] {Predicted labels};
+
+    \node[box,right=of pred] (comppred) {
+        \begin{tikzpicture}[]
+            \fill[gray] (0.2,0.5) -- (0.3,0.8) -- (0.6,0.4) -- cycle;
+            \fill[gray] (0.3,0.8) -- (0.8,0.9) -- (0.6,0.4) -- cycle;
+            \draw[black,line width=0.3mm] (0.3,0.8) -- (0.8,0.9);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.8,0.9);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.3,0.8);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.9,0.3);
+            \draw[black,line width=0.3mm] (0.2,0.5) -- (0.6,0.4);
+            \draw[black,line width=0.3mm] (0.2,0.5) -- (0.3,0.8);
+            \foreach \x/\y/\c in {0/0.2/red, 0.3/0.8/blue, 0.6/0.4/red, 0.8/0.9/blue, 0.2/0.5/red, 0.9/0.3/blue} {
+                \fill[\c] (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0);
+            \draw[->] (0,0) -- (0,1);
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of comppred, text width=2cm, align=center] {Simplicial complex};
+
+    \node[box,right=of comppred] (pd1) {
+        \begin{tikzpicture}[]
+            \draw[->] (0,0) -- (1,0) node[right] {birth};
+            \draw[->] (0,0) -- (0,1) node[above] {death};
+            \draw[dashed] (0,0) -- (1,1);
+            \foreach \x/\y in {0.2/0.6, 0.4/0.8, 0.3/0.5} {
+                \fill (\x,\y) circle (0.1);
+            }
+        \end{tikzpicture}
+    };
+    
+    \node[above=0.1cm of pd1, text width=2cm, align=center] {Persistence diagram, $\dim = 1$};
+
+    % Second column - Ground truth pipeline
+    \node[box,below=1cm of pd1] (pd2) {
+        \begin{tikzpicture}[]
+            \draw[->] (0,0) -- (1,0) node[right] {birth};
+            \draw[->] (0,0) -- (0,1) node[above] {death};
+            \draw[dashed] (0,0) -- (1,1);
+            \foreach \x/\y in {0.15/0.65, 0.45/0.85, 0.25/0.55} {
+                \fill (\x,\y) circle (0.1);
+            }
+        \end{tikzpicture}
+    };
+
+    \node[box,left=1cm of pd2] (compgt) {
+        \begin{tikzpicture}[]
+            \fill[gray] (0.6,0.4) -- (0.8,0.9) -- (0.9,0.3) -- cycle;
+            \fill[gray] (0.3,0.8) -- (0.8,0.9) -- (0.6,0.4) -- cycle;
+            \draw[black,line width=0.3mm] (0.8,0.9) -- (0.9,0.3);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.9,0.3);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.8,0.9);
+            \draw[black,line width=0.3mm] (0.3,0.8) -- (0.8,0.9);
+            \draw[black,line width=0.3mm] (0.3,0.8) -- (0.6,0.4);
+            \foreach \x/\y/\c in {0/0.2/red, 0.3/0.8/red, 0.6/0.4/red, 0.8/0.9/blue, 0.2/0.5/red, 0.9/0.3/blue} {
+                \fill[\c] (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0);
+            \draw[->] (0,0) -- (0,1);
+        \end{tikzpicture}
+    };
+
+    \node[below=0.1cm of compgt, text width=2cm, align=center] {Simplicial complex};
+
+    \node[box,left=of compgt] (gt) {
+        \begin{tikzpicture}[]
+            \foreach \x/\y/\c in {0/0.2/red, 0.3/0.8/red, 0.6/0.4/red, 0.8/0.9/blue, 0.2/0.5/red, 0.9/0.3/blue} {
+                \fill[\c] (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0);
+            \draw[->] (0,0) -- (0,1);
+        \end{tikzpicture}
+    };
+
+    \node[below=0.1cm of gt, text width=2.5cm, align=center] {Ground truth labels};
+
+    % Distance calculation
+    \node[box,right=of pd1] (dist) {
+        \begin{tikzpicture}[]
+            \draw[->] (0,0) -- (1,0) node[right] {birth};
+            \draw[->] (0,0) -- (0,1) node[above] {death};
+            \draw[dashed] (0,0) -- (1,1);
+            \foreach \x/\y in {0.2/0.6, 0.4/0.8, 0.3/0.5} {
+                \fill[blue] (\x,\y) circle (0.1);
+            }
+            \foreach \x/\y in {0.15/0.65, 0.45/0.85, 0.25/0.55} {
+                \fill[red] (\x,\y) circle (0.1);
+            }
+            \foreach \x/\y/\xx/\yy in {0.2/0.6/0.15/0.65, 0.4/0.8/0.45/0.85, 0.3/0.5/0.25/0.55} {
+                \draw[gray,dotted] (\x,\y) -- (\xx,\yy);
+            }
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of dist] {Wasserstein distance};
+
+    % Arrows
+    \draw[arrow] (data1) -- (nn);
+    \draw[arrow] (nn) -- (pred);
+    \draw[arrow] (pred) -- (comppred);
+    \draw[arrow] (comppred) -- (pd1);
+    \draw[arrow] (gt) -- (compgt);
+    \draw[arrow] (compgt) -- (pd2);
+    \draw[arrow] (pd1) -- (dist);
+    \draw[arrow] (pd2) -- (dist);
+
+    \end{tikzpicture}
+    }
+\end{frame}
+
+\begin{frame}{Pipeline}
+    \resizebox{\textwidth}{!}{
+    \begin{tikzpicture}[
+        node distance=1cm,
+        box/.style={rectangle,draw},
+        arrow/.style={->,>=stealth,thick},
+        every text node part/.style={font=\footnotesize}
+    ]
+    % First column - Prediction pipeline
+    \node[box,name=data1] (data1) {
+        \begin{tikzpicture}
+            \foreach \x/\y in {0/0.2, 0.3/0.8, 0.6/0.4, 0.8/0.9, 0.2/0.5, 0.9/0.3} {
+                \fill (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0) node[right] {x};
+            \draw[->] (0,0) -- (0,1) node[above] {y};
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of data1] {Input data};
+
+    \tikzset{
+        every node/.style={
+            opacity=0.4,
+            execute at begin node={\ifx\tikz@fig@name\highlightednode\else\color{black!70}\fi}
+        },
+        every path/.style={opacity=0.4},
+    }
+
+    \node[box,right=of data1] (nn) {
+        \begin{tikzpicture}[scale=0.25]
+            \foreach \x in {0,...,3} {
+                \foreach \y in {0,...,2} {
+                    \fill (\x*2,\y*1.5) circle (0.2);
+                }
+            }
+            \foreach \x in {0,...,2} {
+                \foreach \y in {0,...,2} {
+                    \foreach \z in {0,...,2} {
+                        \draw[gray,thin] (\x*2,\y*1.5) -- (\x*2+2,\z*1.5);
+                    }
+                }
+            }
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of nn] {Neural network};
+
+    \node[box,right=of nn] (pred) {
+        \begin{tikzpicture}[]
+            \foreach \x/\y/\c in {0/0.2/red, 0.3/0.8/blue, 0.6/0.4/red, 0.8/0.9/blue, 0.2/0.5/red, 0.9/0.3/blue} {
+                \fill[\c] (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0);
+            \draw[->] (0,0) -- (0,1);
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of pred, text width=2cm, align=center] {Predicted labels};
+
+    \node[box,right=of pred] (comppred) {
+        \begin{tikzpicture}[]
+            \fill[gray] (0.2,0.5) -- (0.3,0.8) -- (0.6,0.4) -- cycle;
+            \fill[gray] (0.3,0.8) -- (0.8,0.9) -- (0.6,0.4) -- cycle;
+            \draw[black,line width=0.3mm] (0.3,0.8) -- (0.8,0.9);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.8,0.9);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.3,0.8);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.9,0.3);
+            \draw[black,line width=0.3mm] (0.2,0.5) -- (0.6,0.4);
+            \draw[black,line width=0.3mm] (0.2,0.5) -- (0.3,0.8);
+            \foreach \x/\y/\c in {0/0.2/red, 0.3/0.8/blue, 0.6/0.4/red, 0.8/0.9/blue, 0.2/0.5/red, 0.9/0.3/blue} {
+                \fill[\c] (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0);
+            \draw[->] (0,0) -- (0,1);
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of comppred, text width=2cm, align=center] {Simplicial complex};
+
+    \node[box,right=of comppred] (pd1) {
+        \begin{tikzpicture}[]
+            \draw[->] (0,0) -- (1,0) node[right] {birth};
+            \draw[->] (0,0) -- (0,1) node[above] {death};
+            \draw[dashed] (0,0) -- (1,1);
+            \foreach \x/\y in {0.2/0.6, 0.4/0.8, 0.3/0.5} {
+                \fill (\x,\y) circle (0.1);
+            }
+        \end{tikzpicture}
+    };
+    
+    \node[above=0.1cm of pd1, text width=2cm, align=center] {Persistence diagram, $\dim = 1$};
+
+    % Second column - Ground truth pipeline
+    \node[box,below=1cm of pd1] (pd2) {
+        \begin{tikzpicture}[]
+            \draw[->] (0,0) -- (1,0) node[right] {birth};
+            \draw[->] (0,0) -- (0,1) node[above] {death};
+            \draw[dashed] (0,0) -- (1,1);
+            \foreach \x/\y in {0.15/0.65, 0.45/0.85, 0.25/0.55} {
+                \fill (\x,\y) circle (0.1);
+            }
+        \end{tikzpicture}
+    };
+
+    \node[box,left=1cm of pd2] (compgt) {
+        \begin{tikzpicture}[]
+            \fill[gray] (0.6,0.4) -- (0.8,0.9) -- (0.9,0.3) -- cycle;
+            \fill[gray] (0.3,0.8) -- (0.8,0.9) -- (0.6,0.4) -- cycle;
+            \draw[black,line width=0.3mm] (0.8,0.9) -- (0.9,0.3);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.9,0.3);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.8,0.9);
+            \draw[black,line width=0.3mm] (0.3,0.8) -- (0.8,0.9);
+            \draw[black,line width=0.3mm] (0.3,0.8) -- (0.6,0.4);
+            \foreach \x/\y/\c in {0/0.2/red, 0.3/0.8/red, 0.6/0.4/red, 0.8/0.9/blue, 0.2/0.5/red, 0.9/0.3/blue} {
+                \fill[\c] (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0);
+            \draw[->] (0,0) -- (0,1);
+        \end{tikzpicture}
+    };
+
+    \node[below=0.1cm of compgt, text width=2cm, align=center] {Simplicial complex};
+
+    \node[box,left=of compgt] (gt) {
+        \begin{tikzpicture}[]
+            \foreach \x/\y/\c in {0/0.2/red, 0.3/0.8/red, 0.6/0.4/red, 0.8/0.9/blue, 0.2/0.5/red, 0.9/0.3/blue} {
+                \fill[\c] (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0);
+            \draw[->] (0,0) -- (0,1);
+        \end{tikzpicture}
+    };
+
+    \node[below=0.1cm of gt, text width=2.5cm, align=center] {Ground truth labels};
+
+    % Distance calculation
+    \node[box,right=of pd1] (dist) {
+        \begin{tikzpicture}[]
+            \draw[->] (0,0) -- (1,0) node[right] {birth};
+            \draw[->] (0,0) -- (0,1) node[above] {death};
+            \draw[dashed] (0,0) -- (1,1);
+            \foreach \x/\y in {0.2/0.6, 0.4/0.8, 0.3/0.5} {
+                \fill[blue] (\x,\y) circle (0.1);
+            }
+            \foreach \x/\y in {0.15/0.65, 0.45/0.85, 0.25/0.55} {
+                \fill[red] (\x,\y) circle (0.1);
+            }
+            \foreach \x/\y/\xx/\yy in {0.2/0.6/0.15/0.65, 0.4/0.8/0.45/0.85, 0.3/0.5/0.25/0.55} {
+                \draw[gray,dotted] (\x,\y) -- (\xx,\yy);
+            }
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of dist] {Wasserstein distance};
+
+    % Arrows
+    \draw[arrow] (data1) -- (nn);
+    \draw[arrow] (nn) -- (pred);
+    \draw[arrow] (pred) -- (comppred);
+    \draw[arrow] (comppred) -- (pd1);
+    \draw[arrow] (gt) -- (compgt);
+    \draw[arrow] (compgt) -- (pd2);
+    \draw[arrow] (pd1) -- (dist);
+    \draw[arrow] (pd2) -- (dist);
+
+    \end{tikzpicture}
+    }
+\end{frame}
+
+
+\begin{frame}{Input data}
+    \begin{itemize}
+        \item MNIST: 28x28 grayscale images of handwritten digits, $\dim = 784$
+        \includegraphics[width=0.8\textwidth]{images/mnist.png}
+        \item FashionMNIST: 28x28 grayscale images of fashion articles, $\dim = 784$
+        \includegraphics[width=0.8\textwidth]{images/fashionmnist.png}
+        \item CIFAR-10: 32x32 color images of 10 classes, $\dim = 3072$
+        \includegraphics[width=0.8\textwidth]{images/cifar.png}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Pipeline}
+    \resizebox{\textwidth}{!}{
+    \begin{tikzpicture}[
+        node distance=1cm,
+        box/.style={rectangle,draw},
+        arrow/.style={->,>=stealth,thick},
+        every text node part/.style={font=\footnotesize}
+    ]
+    
+    \node[box,right=of data1] (nn) {
+        \begin{tikzpicture}[scale=0.25]
+            \foreach \x in {0,...,3} {
+                \foreach \y in {0,...,2} {
+                    \fill (\x*2,\y*1.5) circle (0.2);
+                }
+            }
+            \foreach \x in {0,...,2} {
+                \foreach \y in {0,...,2} {
+                    \foreach \z in {0,...,2} {
+                        \draw[gray,thin] (\x*2,\y*1.5) -- (\x*2+2,\z*1.5);
+                    }
+                }
+            }
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of nn] {Neural network};
+
+    \tikzset{
+        every node/.style={
+            opacity=0.4,
+            execute at begin node={\ifx\tikz@fig@name\highlightednode\else\color{black!70}\fi}
+        },
+        every path/.style={opacity=0.4},
+    }
+
+    % First column - Prediction pipeline
+    \node[box,name=data1] (data1) {
+        \begin{tikzpicture}
+            \foreach \x/\y in {0/0.2, 0.3/0.8, 0.6/0.4, 0.8/0.9, 0.2/0.5, 0.9/0.3} {
+                \fill (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0) node[right] {x};
+            \draw[->] (0,0) -- (0,1) node[above] {y};
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of data1] {Input data};
+
+    \node[box,right=of nn] (pred) {
+        \begin{tikzpicture}[]
+            \foreach \x/\y/\c in {0/0.2/red, 0.3/0.8/blue, 0.6/0.4/red, 0.8/0.9/blue, 0.2/0.5/red, 0.9/0.3/blue} {
+                \fill[\c] (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0);
+            \draw[->] (0,0) -- (0,1);
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of pred, text width=2cm, align=center] {Predicted labels};
+
+    \node[box,right=of pred] (comppred) {
+        \begin{tikzpicture}[]
+            \fill[gray] (0.2,0.5) -- (0.3,0.8) -- (0.6,0.4) -- cycle;
+            \fill[gray] (0.3,0.8) -- (0.8,0.9) -- (0.6,0.4) -- cycle;
+            \draw[black,line width=0.3mm] (0.3,0.8) -- (0.8,0.9);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.8,0.9);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.3,0.8);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.9,0.3);
+            \draw[black,line width=0.3mm] (0.2,0.5) -- (0.6,0.4);
+            \draw[black,line width=0.3mm] (0.2,0.5) -- (0.3,0.8);
+            \foreach \x/\y/\c in {0/0.2/red, 0.3/0.8/blue, 0.6/0.4/red, 0.8/0.9/blue, 0.2/0.5/red, 0.9/0.3/blue} {
+                \fill[\c] (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0);
+            \draw[->] (0,0) -- (0,1);
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of comppred, text width=2cm, align=center] {Simplicial complex};
+
+    \node[box,right=of comppred] (pd1) {
+        \begin{tikzpicture}[]
+            \draw[->] (0,0) -- (1,0) node[right] {birth};
+            \draw[->] (0,0) -- (0,1) node[above] {death};
+            \draw[dashed] (0,0) -- (1,1);
+            \foreach \x/\y in {0.2/0.6, 0.4/0.8, 0.3/0.5} {
+                \fill (\x,\y) circle (0.1);
+            }
+        \end{tikzpicture}
+    };
+    
+    \node[above=0.1cm of pd1, text width=2cm, align=center] {Persistence diagram, $\dim = 1$};
+
+    % Second column - Ground truth pipeline
+    \node[box,below=1cm of pd1] (pd2) {
+        \begin{tikzpicture}[]
+            \draw[->] (0,0) -- (1,0) node[right] {birth};
+            \draw[->] (0,0) -- (0,1) node[above] {death};
+            \draw[dashed] (0,0) -- (1,1);
+            \foreach \x/\y in {0.15/0.65, 0.45/0.85, 0.25/0.55} {
+                \fill (\x,\y) circle (0.1);
+            }
+        \end{tikzpicture}
+    };
+
+    \node[box,left=1cm of pd2] (compgt) {
+        \begin{tikzpicture}[]
+            \fill[gray] (0.6,0.4) -- (0.8,0.9) -- (0.9,0.3) -- cycle;
+            \fill[gray] (0.3,0.8) -- (0.8,0.9) -- (0.6,0.4) -- cycle;
+            \draw[black,line width=0.3mm] (0.8,0.9) -- (0.9,0.3);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.9,0.3);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.8,0.9);
+            \draw[black,line width=0.3mm] (0.3,0.8) -- (0.8,0.9);
+            \draw[black,line width=0.3mm] (0.3,0.8) -- (0.6,0.4);
+            \foreach \x/\y/\c in {0/0.2/red, 0.3/0.8/red, 0.6/0.4/red, 0.8/0.9/blue, 0.2/0.5/red, 0.9/0.3/blue} {
+                \fill[\c] (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0);
+            \draw[->] (0,0) -- (0,1);
+        \end{tikzpicture}
+    };
+
+    \node[below=0.1cm of compgt, text width=2cm, align=center] {Simplicial complex};
+
+    \node[box,left=of compgt] (gt) {
+        \begin{tikzpicture}[]
+            \foreach \x/\y/\c in {0/0.2/red, 0.3/0.8/red, 0.6/0.4/red, 0.8/0.9/blue, 0.2/0.5/red, 0.9/0.3/blue} {
+                \fill[\c] (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0);
+            \draw[->] (0,0) -- (0,1);
+        \end{tikzpicture}
+    };
+
+    \node[below=0.1cm of gt, text width=2.5cm, align=center] {Ground truth labels};
+
+    % Distance calculation
+    \node[box,right=of pd1] (dist) {
+        \begin{tikzpicture}[]
+            \draw[->] (0,0) -- (1,0) node[right] {birth};
+            \draw[->] (0,0) -- (0,1) node[above] {death};
+            \draw[dashed] (0,0) -- (1,1);
+            \foreach \x/\y in {0.2/0.6, 0.4/0.8, 0.3/0.5} {
+                \fill[blue] (\x,\y) circle (0.1);
+            }
+            \foreach \x/\y in {0.15/0.65, 0.45/0.85, 0.25/0.55} {
+                \fill[red] (\x,\y) circle (0.1);
+            }
+            \foreach \x/\y/\xx/\yy in {0.2/0.6/0.15/0.65, 0.4/0.8/0.45/0.85, 0.3/0.5/0.25/0.55} {
+                \draw[gray,dotted] (\x,\y) -- (\xx,\yy);
+            }
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of dist] {Wasserstein distance};
+
+    % Arrows
+    \draw[arrow] (data1) -- (nn);
+    \draw[arrow] (nn) -- (pred);
+    \draw[arrow] (pred) -- (comppred);
+    \draw[arrow] (comppred) -- (pd1);
+    \draw[arrow] (gt) -- (compgt);
+    \draw[arrow] (compgt) -- (pd2);
+    \draw[arrow] (pd1) -- (dist);
+    \draw[arrow] (pd2) -- (dist);
+
+    \end{tikzpicture}
+    }
+\end{frame}
+
+% \begin{frame}{Models}
+%     \only<1>{\vspace*{45pt}}
+%     \begin{itemize}
+%         \item Fully-connected neural network with ReLU activations
+
+%         \only<1>{\hspace*{-1.5em}\begin{tikzpicture}[
+%             node distance=1cm,
+%             box/.style={rectangle,draw},
+%             arrow/.style={->,>=stealth,thick},
+%             every text node part/.style={font=\footnotesize}
+%         ]
+%             \node[box] (input) { \begin{tikzpicture}[
+%                 neuron/.style={circle,draw,minimum size=0.5cm,fill=gray!50},
+%             ]
+%                 \node[neuron] (n0) at (0,2.4) {};
+%                 \node[neuron] (n1) at (0,1.6) {};
+%                 \node[neuron] (n2) at (0,0.8) {};
+%                 \node[neuron] (n3) at (0,-0.8) {};
+%                 \node[neuron] (n4) at (0,-1.6) {};
+%                 \node at (0,0) {$\vdots$};
+%             \end{tikzpicture} }
+%             \node[below=0.1cm of input,text width=2cm,align=center] (inputlabel) {Input $\dim = 784$};
+
+%             \node[box,right=of input] (l1) { \begin{tikzpicture}[
+%                 neuron/.style={circle,draw,minimum size=0.5cm,fill=gray!50},
+%             ]
+%                 \node[neuron] (n1) at (0,1.6) {};
+%                 \node[neuron] (n2) at (0,0.8) {};
+%                 \node[neuron] (n3) at (0,-0.8) {};
+%                 \node[neuron] (n4) at (0,-1.6) {};
+%                 \node at (0,0) {$\vdots$};
+%             \end{tikzpicture} }
+%             \node[below=0.1cm of l1,text width=2cm,align=center] (l1label) {Layer 1 $\dim = 512$};
+
+%             \node[box,right=0.5cm of l1] (relu1) { ReLU }
+
+%             \node[box,right=of relu1] (l2) { \begin{tikzpicture}[
+%                 neuron/.style={circle,draw,minimum size=0.5cm,fill=gray!50},
+%             ]
+%                 \node[neuron] (n1) at (0,1.6) {};
+%                 \node[neuron] (n2) at (0,0.8) {};
+%                 \node[neuron] (n3) at (0,-0.8) {};
+%                 \node at (0,0) {$\vdots$};
+%             \end{tikzpicture} }
+%             \node[below=0.1cm of l2,text width=2cm,align=center] (l2label) {Layer 2 $\dim = 128$};
+
+%             \node[box,right=0.5cm of l2] (relu2) { ReLU }
+
+%             \node[box,right=of relu2] (l3) { \begin{tikzpicture}[
+%                 neuron/.style={circle,draw,minimum size=0.5cm,fill=gray!50},
+%             ]
+%                 \node[neuron] (n2) at (0,0.8) {};
+%                 \node[neuron] (n3) at (0,-0.8) {};
+%                 \node at (0,0) {$\vdots$};
+%             \end{tikzpicture} }
+%             \node[below=0.1cm of l3,text width=2cm,align=center] (l2label) {Layer 3 $\dim = 16$};
+
+%             \node[box,right=0.5cm of l3] (relu3) { ReLU }
+
+%             \node[box,right=of relu3] (l4) { \begin{tikzpicture}[
+%                 neuron/.style={circle,draw,minimum size=0.5cm,fill=gray!50},
+%             ]
+%                 \node[neuron] (n2) at (0,0.8) {};
+%                 \node[neuron] (n3) at (0,-0.8) {};
+%                 \node at (0,0) {$\vdots$};
+%             \end{tikzpicture} }
+%             \node[below=0.1cm of l4,text width=2cm,align=center] (l2label) {Output layer $\dim = 10$};
+
+%             \draw[arrow] (input) -- (l1);
+%             \draw[arrow] (l1) -- (relu1);
+%             \draw[arrow] (relu1) -- (l2);
+%             \draw[arrow] (l2) -- (relu2);
+%             \draw[arrow] (relu2) -- (l3);
+%             \draw[arrow] (l3) -- (relu3);
+%             \draw[arrow] (relu3) -- (l4);
+%         \end{tikzpicture}}
+%         \item<2-> Convolutional NN from the PyTorch MNIST tutorial + modifications:
+%         \begin{itemize}
+%             \item Reduced layer sizes
+%             \item Increased layer sizes
+%             \item Additional layers
+%             \item Aggressive learning rate growth ($\gamma = 1.9$) to simulate overfitting
+%             \item Small learning rate $(\alpha = 10^{-6})$ to simulate underfitting
+%         \end{itemize}
+        
+%         \resizebox{0.8\textwidth}{!}{ \includesvg[width=\textwidth]{nn.svg} }
+%     \end{itemize}
+% \end{frame}
+
+% \begin{frame}{Simplicial complexes}
+%     \begin{itemize}
+%         \item \emph{Labeled \v{C}ech complex}:
+%         \begin{itemize}
+%             \item A modification of the standard \v{C}ech complex
+%             \item Has statistical guarantees for decision boundary recovery, but is intractable
+%             \item Not applicable to multi-class problems
+%         \end{itemize}
+%         \item \emph{Labeled Vietoris-Rips complex}:
+%         \begin{itemize}
+%             \item A modification of the standard Vietoris-Rips complex
+%             \item No guarantees, but is tractable
+%             \item Can be applied to multi-class problems \textcolor{gray}{(new!)}
+%         \end{itemize}
+%     \end{itemize}
+% \end{frame}
+
+% \begin{frame}{Labeled \v{C}ech complex}
+%     \begin{columns}
+%         \column{0.55\textwidth}
+%         \begin{itemize}
+%             \item Set of points $X$
+%             \item Reference set of points $Y$
+%             \item Parameters $\varepsilon$ and $\gamma$
+%         \end{itemize}
+%         \onslide<2->{
+%         $L\check{C}_{X, Y}^{\varepsilon, \gamma}$ contains
+%         \(x_0, \dots, x_n \in X\) iff:
+%         \begin{enumerate}
+%             \item<2-> For each \(i \in (0, \dots, n)\)
+%             \(\exists y \in Y : \norm{x_i - y} \leq \gamma\).
+%             \item<3-> \(\bigcap_{i = 0}^n B_\varepsilon(x_i) \neq \emptyset\)
+%         \end{enumerate}
+%         }
+%         \onslide<4->{\begin{itemize}
+%             \item Filtration is done by varying $\varepsilon$
+%             \item Simplices are on one side of the boundary
+%             \item Not applicable to multiple classes
+%             \item Not tractable
+%             \item Has probabilistic recovery guarantees
+%         \end{itemize}
+%         }
+%         \column{0.55\textwidth}
+%         \hspace*{-0.5cm}
+%         \only<1>{\resizebox{1.1\textwidth}{!}{\input{plots/lc_points.pgf}}}
+%         \only<2>{\resizebox{1.1\textwidth}{!}{\input{plots/lc_union.pgf}}}
+%         \only<3->{\resizebox{1.1\textwidth}{!}{\input{plots/lc_full.pgf}}}
+%     \end{columns}
+% \end{frame}
+
+\begin{frame}{Pipeline}
+    \resizebox{\textwidth}{!}{
+    \begin{tikzpicture}[
+        node distance=1cm,
+        box/.style={rectangle,draw},
+        arrow/.style={->,>=stealth,thick},
+        every text node part/.style={font=\footnotesize}
+    ]
+
+    \node[box,right=of pred] (comppred) {
+        \begin{tikzpicture}[]
+            \fill[gray] (0.2,0.5) -- (0.3,0.8) -- (0.6,0.4) -- cycle;
+            \fill[gray] (0.3,0.8) -- (0.8,0.9) -- (0.6,0.4) -- cycle;
+            \draw[black,line width=0.3mm] (0.3,0.8) -- (0.8,0.9);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.8,0.9);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.3,0.8);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.9,0.3);
+            \draw[black,line width=0.3mm] (0.2,0.5) -- (0.6,0.4);
+            \draw[black,line width=0.3mm] (0.2,0.5) -- (0.3,0.8);
+            \foreach \x/\y/\c in {0/0.2/red, 0.3/0.8/blue, 0.6/0.4/red, 0.8/0.9/blue, 0.2/0.5/red, 0.9/0.3/blue} {
+                \fill[\c] (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0);
+            \draw[->] (0,0) -- (0,1);
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of comppred, text width=2cm, align=center] {Simplicial complex};
+    
+    \node[box,left=1cm of pd2] (compgt) {
+        \begin{tikzpicture}[]
+            \fill[gray] (0.6,0.4) -- (0.8,0.9) -- (0.9,0.3) -- cycle;
+            \fill[gray] (0.3,0.8) -- (0.8,0.9) -- (0.6,0.4) -- cycle;
+            \draw[black,line width=0.3mm] (0.8,0.9) -- (0.9,0.3);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.9,0.3);
+            \draw[black,line width=0.3mm] (0.6,0.4) -- (0.8,0.9);
+            \draw[black,line width=0.3mm] (0.3,0.8) -- (0.8,0.9);
+            \draw[black,line width=0.3mm] (0.3,0.8) -- (0.6,0.4);
+            \foreach \x/\y/\c in {0/0.2/red, 0.3/0.8/red, 0.6/0.4/red, 0.8/0.9/blue, 0.2/0.5/red, 0.9/0.3/blue} {
+                \fill[\c] (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0);
+            \draw[->] (0,0) -- (0,1);
+        \end{tikzpicture}
+    };
+
+    \node[below=0.1cm of compgt, text width=2cm, align=center] {Simplicial complex};
+
+    \tikzset{
+        every node/.style={
+            opacity=0.4,
+            execute at begin node={\ifx\tikz@fig@name\highlightednode\else\color{black!70}\fi}
+        },
+        every path/.style={opacity=0.4},
+    }
+
+    % First column - Prediction pipeline
+    \node[box,name=data1] (data1) {
+        \begin{tikzpicture}
+            \foreach \x/\y in {0/0.2, 0.3/0.8, 0.6/0.4, 0.8/0.9, 0.2/0.5, 0.9/0.3} {
+                \fill (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0) node[right] {x};
+            \draw[->] (0,0) -- (0,1) node[above] {y};
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of data1] {Input data};
+
+    \node[box,right=of data1] (nn) {
+        \begin{tikzpicture}[scale=0.25]
+            \foreach \x in {0,...,3} {
+                \foreach \y in {0,...,2} {
+                    \fill (\x*2,\y*1.5) circle (0.2);
+                }
+            }
+            \foreach \x in {0,...,2} {
+                \foreach \y in {0,...,2} {
+                    \foreach \z in {0,...,2} {
+                        \draw[gray,thin] (\x*2,\y*1.5) -- (\x*2+2,\z*1.5);
+                    }
+                }
+            }
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of nn] {Neural network};
+
+    \node[box,right=of nn] (pred) {
+        \begin{tikzpicture}[]
+            \foreach \x/\y/\c in {0/0.2/red, 0.3/0.8/blue, 0.6/0.4/red, 0.8/0.9/blue, 0.2/0.5/red, 0.9/0.3/blue} {
+                \fill[\c] (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0);
+            \draw[->] (0,0) -- (0,1);
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of pred, text width=2cm, align=center] {Predicted labels};
+
+    \node[box,right=of comppred] (pd1) {
+        \begin{tikzpicture}[]
+            \draw[->] (0,0) -- (1,0) node[right] {birth};
+            \draw[->] (0,0) -- (0,1) node[above] {death};
+            \draw[dashed] (0,0) -- (1,1);
+            \foreach \x/\y in {0.2/0.6, 0.4/0.8, 0.3/0.5} {
+                \fill (\x,\y) circle (0.1);
+            }
+        \end{tikzpicture}
+    };
+    
+    \node[above=0.1cm of pd1, text width=2cm, align=center] {Persistence diagram, $\dim = 1$};
+
+    % Second column - Ground truth pipeline
+    \node[box,below=1cm of pd1] (pd2) {
+        \begin{tikzpicture}[]
+            \draw[->] (0,0) -- (1,0) node[right] {birth};
+            \draw[->] (0,0) -- (0,1) node[above] {death};
+            \draw[dashed] (0,0) -- (1,1);
+            \foreach \x/\y in {0.15/0.65, 0.45/0.85, 0.25/0.55} {
+                \fill (\x,\y) circle (0.1);
+            }
+        \end{tikzpicture}
+    };
+
+    \node[box,left=of compgt] (gt) {
+        \begin{tikzpicture}[]
+            \foreach \x/\y/\c in {0/0.2/red, 0.3/0.8/red, 0.6/0.4/red, 0.8/0.9/blue, 0.2/0.5/red, 0.9/0.3/blue} {
+                \fill[\c] (\x,\y) circle (0.1);
+            }
+            \draw[->] (0,0) -- (1,0);
+            \draw[->] (0,0) -- (0,1);
+        \end{tikzpicture}
+    };
+
+    \node[below=0.1cm of gt, text width=2.5cm, align=center] {Ground truth labels};
+
+    % Distance calculation
+    \node[box,right=of pd1] (dist) {
+        \begin{tikzpicture}[]
+            \draw[->] (0,0) -- (1,0) node[right] {birth};
+            \draw[->] (0,0) -- (0,1) node[above] {death};
+            \draw[dashed] (0,0) -- (1,1);
+            \foreach \x/\y in {0.2/0.6, 0.4/0.8, 0.3/0.5} {
+                \fill[blue] (\x,\y) circle (0.1);
+            }
+            \foreach \x/\y in {0.15/0.65, 0.45/0.85, 0.25/0.55} {
+                \fill[red] (\x,\y) circle (0.1);
+            }
+            \foreach \x/\y/\xx/\yy in {0.2/0.6/0.15/0.65, 0.4/0.8/0.45/0.85, 0.3/0.5/0.25/0.55} {
+                \draw[gray,dotted] (\x,\y) -- (\xx,\yy);
+            }
+        \end{tikzpicture}
+    };
+
+    \node[above=0.1cm of dist] {Wasserstein distance};
+
+    % Arrows
+    \draw[arrow] (data1) -- (nn);
+    \draw[arrow] (nn) -- (pred);
+    \draw[arrow] (pred) -- (comppred);
+    \draw[arrow] (comppred) -- (pd1);
+    \draw[arrow] (gt) -- (compgt);
+    \draw[arrow] (compgt) -- (pd2);
+    \draw[arrow] (pd1) -- (dist);
+    \draw[arrow] (pd2) -- (dist);
+
+    \end{tikzpicture}
+    }
+\end{frame}
+
+
+\begin{frame}{Binarization}
+    \begin{columns}
+        \column{0.8\textwidth}
+        Previous work only considered binary classification by splitting
+        a dataset with $n$ classes into $\binom{n}{2}$ binary datasets.
+        This changes the homology groups:
+        \begin{itemize}
+            \item Original has $H_1 \not\cong 0$
+            \item All binary decompositions have $H_1 \cong 0$
+            % \item Original has $\dim H_0 = 1$
+            % \item The red-green binary decomposition has $\dim H_0 = 2$.
+        \end{itemize}
+        It is better to avoid binarization.
+        \column{0.2\textwidth}
+        \begin{tikzpicture}
+            \fill[blue] (0,0) circle(0.5);
+    
+            \fill[red]
+            (0,-0.5)           % Start at bottom inner point
+            arc(-90:90:0.5)     % Inner arc: radius=0.5 from -90° to 90° (bottom to top on the right side)
+            -- (0,1)            % Line from top inner (0,0.5) to top outer (0,1)
+            arc(90:-90:1)       % Outer arc: radius=1 from 90° to -90° (top to bottom on the right side)
+            -- cycle;           
+
+            \begin{scope}[rotate=180]
+            \fill[green]
+            (0,-0.5)
+            arc(-90:90:0.5)
+            -- (0,1)
+            arc(90:-90:1)
+            -- cycle;
+            \end{scope}
+            
+            % Decision boundary
+            \draw[line width=0.5mm] (0, 0.5) -- (0, 1);
+            \draw[line width=0.5mm] (0, -0.5) -- (0, -1);
+            \draw[line width=0.5mm] (0,0) circle (0.5);
+        \end{tikzpicture}
+        \linebreak
+
+        \begin{tikzpicture}
+            \fill[red]
+            (0,-0.5)           % Start at bottom inner point
+            arc(-90:90:0.5)     % Inner arc: radius=0.5 from -90° to 90° (bottom to top on the right side)
+            -- (0,1)            % Line from top inner (0,0.5) to top outer (0,1)
+            arc(90:-90:1)       % Outer arc: radius=1 from 90° to -90° (top to bottom on the right side)
+            -- cycle;           
+
+            \begin{scope}[rotate=180]
+            \fill[green]
+            (0,-0.5)
+            arc(-90:90:0.5)
+            -- (0,1)
+            arc(90:-90:1)
+            -- cycle;
+            \end{scope}
+            
+            % Decision boundary
+            \draw[line width=0.5mm] (0, 0.5) -- (0, 1);
+            \draw[line width=0.5mm] (0, -0.5) -- (0, -1);
+        \end{tikzpicture}
+        \\
+
+        \begin{tikzpicture}
+            \fill[blue] (0,0) circle(0.5);
+    
+            \begin{scope}[rotate=180]
+            \fill[green]
+            (0,-0.5)
+            arc(-90:90:0.5)
+            -- (0,1)
+            arc(90:-90:1)
+            -- cycle;
+            \end{scope}
+            
+            % Decision boundary
+            \draw[line width=0.5mm] (0,0.5) arc (90:270:0.5);
+        \end{tikzpicture}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Labeled Vietoris-Rips complex}
+    \begin{columns}
+        \column{0.6\textwidth}
+        \begin{itemize}
+            \item Set of points $X$
+            \item Labels $c: X \to \mathbb{Z}_k$
+            \item Parameter \(\varepsilon\)
+        \end{itemize}
+        Constructed in three steps:
+        \begin{enumerate}
+            \item<2-> Create a graph \(G_\varepsilon\) with vertex set \(X\) by adding an edge 
+            between points \(x_i, x_j \in X\) iff:
+            \begin{itemize}
+                \item \(\norm{x_i - x_j} \leq \varepsilon\) (points are close enough)
+                \item \(c(x_i) \neq c(x_j)\) (different classes)
+            \end{itemize}
+            
+            \item<3-> Add edges between all 2-hop neighbors in \(G_\varepsilon\)          
+            \item<4-> Standard Vietoris-Rips construction: include simplex if all faces are included
+        \end{enumerate}
+        \only<5>{
+            \begin{itemize}
+                \item Simplices cross the boundary
+                \item Applicable to multiple classes
+            \end{itemize}
+        }
+        \column{0.4\textwidth}
+        \hspace*{-0.5cm}
+        \only<1>{\hspace*{-1em}\resizebox{1.2\textwidth}{!}{\input{plots/lvr_points.pgf}}}
+        \only<2>{\hspace*{-1em}\resizebox{1.2\textwidth}{!}{\input{plots/lvr_step1.pgf}}}
+        \only<3>{\hspace*{-1em}\resizebox{1.2\textwidth}{!}{\input{plots/lvr_step2.pgf}}}
+        \only<4->{\hspace*{-1em}\resizebox{1.2\textwidth}{!}{\input{plots/lvr_step3.pgf}}}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Synthetic 2D experiemnts}
+    To see if the LVR complex recovers the homology of the decision boundary,
+    we use synthetic 2D data with nested annuli.
+    \begin{figure}
+        \begin{subfigure}{0.3\textwidth}
+            \includegraphics[width=\textwidth]{plots/nested.jpg}
+        \end{subfigure}%
+        \begin{subfigure}{0.3\textwidth}
+            \resizebox{\textwidth}{!}{
+                \input{plots/nested_ph.pgf}
+            }
+            % \caption{Persistence diagram}
+        \end{subfigure}%
+        \begin{subfigure}{0.3\textwidth}
+            \includegraphics[width=\textwidth]{plots/nested_complex_9_no_cc.jpg}
+            % \caption{Simplicial complex}
+        \end{subfigure}
+    \end{figure}
+    Edges cross the decision boundary multiple times $ \implies $ spurious holes appear.
+\end{frame}
+
+\begin{frame}{Circumcircle filtering}
+    \begin{itemize}
+        \item Remove an edge $AB$ if exists vertex $C : |AB|^2 > (|AC|^2 + |BC|^2) \theta$.
+        \item $\theta$ is a parameter to relax the condition.
+    \end{itemize}
+    \begin{center}
+        \begin{tikzpicture}[scale=0.5]
+            \coordinate (A) at (0,0);
+            \coordinate (B) at (5,2);
+            \coordinate (C) at (3.5,-1.5); 
+
+            % circle center
+            \coordinate (M) at ($(A)!0.5!(B)$);
+
+            % triangle
+            \draw[thick] (A) -- (B) -- (C) -- cycle;
+            \draw ($(C)!0.1!(B)$) -- ($(C) + (-0.2,0.5)$) -- ($(C)!0.1!(A)$);
+
+            % circle
+            \pgfmathsetmacro{\radius}{sqrt((5)^2 + (2)^2)/2 * 0.5}
+            \draw[fill=blue!50, fill opacity=0.3] (M) circle (\radius);
+            \node[above] at ($(M) + (0.0,1.3)$) {$\theta = 1.3$};
+
+            \node[left]  at (A) {$A$};
+            \node[right] at (B) {$B$};
+            \node[below] at (C) {$C$};
+        \end{tikzpicture}
+        \begin{tikzpicture}[scale=0.5]
+            \coordinate (A) at (0,0);
+            \coordinate (B) at (5,2);
+            \coordinate (C) at (3.5,-1.5); 
+
+            % circle center
+            \coordinate (M) at ($(A)!0.5!(B)$);
+
+            % triangle
+            \draw[thick] (A) -- (B) -- (C) -- cycle;
+            \draw ($(C)!0.1!(B)$) -- ($(C) + (-0.2,0.5)$) -- ($(C)!0.1!(A)$);
+
+            % circle
+            \pgfmathsetmacro{\radius}{sqrt((5)^2 + (2)^2)/2}
+            \draw[fill=blue!50, fill opacity=0.3] (M) circle (\radius);
+            \node[above] at ($(M) + (0.0,2.7)$) {$\theta = 1.0$};
+
+            \node[left]  at (A) {$A$};
+            \node[right] at (B) {$B$};
+            \node[below] at (C) {$C$};
+        \end{tikzpicture}
+        \begin{tikzpicture}[scale=0.5]
+            \coordinate (A) at (0,0);
+            \coordinate (B) at (5,2);
+            \coordinate (C) at (3.5,-1.5); 
+
+            % circle center
+            \coordinate (M) at ($(A)!0.5!(B)$);
+
+            % triangle
+            \draw[thick] (A) -- (B) -- (C) -- cycle;
+            \draw ($(C)!0.1!(B)$) -- ($(C) + (-0.2,0.5)$) -- ($(C)!0.1!(A)$);
+
+            % circle
+            \pgfmathsetmacro{\radius}{sqrt((5)^2 + (2)^2)/2 * 1.5}
+            \draw[fill=blue!50, fill opacity=0.3] (M) circle (\radius);
+            \node[above] at ($(M) + (0.0,4.0)$) {$\theta = 0.7$};
+
+            \node[left]  at (A) {$A$};
+            \node[right] at (B) {$B$};
+            \node[below] at (C) {$C$};
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+
+\begin{frame}{Circumcircle filtering impact}
+    \begin{figure}
+        \centering
+        \begin{subfigure}{0.3\textwidth}
+            \includegraphics[width=\textwidth]{plots/nested_complex_9_no_cc.jpg}
+        \end{subfigure}%
+        \begin{subfigure}{0.3\textwidth}
+            \includegraphics[width=\textwidth]{plots/nested_complex_9_cc.jpg}
+        \end{subfigure}%
+        \begin{subfigure}{0.3\textwidth}
+            \resizebox{\textwidth}{!}{
+                \input{plots/nested_ph_cc.pgf}
+            }
+        \end{subfigure}%
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Circumcircle filtering impact on high-dimensional data}
+    \begin{columns}
+        \column{0.4\textwidth}
+        % \resizebox{\textwidth}{!}{
+\begin{table}
+    \centering
+    \begin{tabular}{rcc}
+        \toprule
+        Dataset & Binary & Multiclass \\
+        \hline
+        MNIST & 7 & 4 \\
+        FashionMNIST & 14 & 1 \\
+        CIFAR10 & 7 & 0 \\
+        \bottomrule
+    \end{tabular}
+    \caption*{Maximum differences in Wasserstein distance between persistence diagrams with and without CC.}
+    \label{tab:cc_effect}
+\end{table}
+        % }
+        \column{0.7\textwidth}
+    \begin{figure}
+        \begin{subfigure}{0.4\textwidth}
+            \resizebox{\textwidth}{!}{
+                \input{plots/cc_effect_ph1.pgf}
+            }
+        \end{subfigure}
+        \begin{subfigure}{0.4\textwidth}
+            \resizebox{\textwidth}{!}{
+                \input{plots/cc_effect_ph2.pgf}
+            }
+        \end{subfigure}
+        \caption*{The two persistence diagrams that differ the most when CC is applied.}
+    \end{figure}
+    \end{columns}
+    The difference is negligible $\implies$ CC is not used
+\end{frame}
+
+% \begin{frame}{Results: binary classification}
+%     \begin{figure}
+%         \centering
+%         \begin{subfigure}{0.49\textwidth}
+%             \resizebox{\textwidth}{!}{
+%                 \input{plots/class01-baseline-tbl.pgf}
+%             }
+%         \end{subfigure}
+%         \begin{subfigure}{0.49\textwidth}
+%             \resizebox{\textwidth}{!}{
+%                 \input{plots/class01-baseline-wass.pgf}
+%             }
+%         \end{subfigure}
+%         \caption*{Evolution of topological metrics during training for the classes 0 and 1 in the MNIST dataset.}
+%         \label{fig:baseline-topmetrics}
+%     \end{figure}
+% \end{frame}
+
+% \begin{frame}{Results: binary classification}
+%     \Wider[5em]{
+%     \begin{figure}
+%         \centering
+%         \begin{subfigure}{0.24\textwidth}
+%             \resizebox{\textwidth}{!}{
+%                 \input{plots/nn1_class01_mnist_pd.pgf}
+%             }
+%             \caption{Epoch 1}
+%         \end{subfigure}
+%         \begin{subfigure}{0.24\textwidth}
+%             \resizebox{\textwidth}{!}{
+%                 \input{plots/nn7_class01_mnist_pd.pgf}
+%             }
+%             \caption{Epoch 7}
+%         \end{subfigure}
+%         \begin{subfigure}{0.24\textwidth}
+%             \resizebox{\textwidth}{!}{
+%                 \input{plots/nn14_class01_mnist_pd.pgf}
+%             }
+%             \caption{Epoch 14}
+%         \end{subfigure}
+%         \begin{subfigure}{0.24\textwidth}
+%             \resizebox{\textwidth}{!}{
+%                 \input{plots/gt_class01_mnist_pd.pgf}
+%             }
+%             \caption{Ground truth}
+%         \end{subfigure}
+%         \caption*{Evolution of persistence diagrams during training for the classes 0 and 1 in the MNIST dataset.}
+%         \label{fig:baseline-pds}
+%     \end{figure}
+%     }
+% \end{frame}
+
+\begin{frame}{Results: binary classification}
+    \begin{figure}
+        \centering
+        \resizebox{0.7\textwidth}{!}{
+            \input{plots/aarhus/baseline-wass.pgf}
+        }
+        \caption*{Relationship between Wasserstein distance and model accuracy across
+        all binary classification pairs in MNIST. Connected points represent consecutive
+        epochs for the same class pair.}
+        \label{fig:baseline-binary-scatter-wass}
+    \end{figure}
+\end{frame}
+
+% \begin{frame}{Results: multiclass classification (MNIST)}
+%     \Wider[5em]{
+%     \begin{figure}
+%         \begin{subfigure}{0.24\textwidth}
+%             \resizebox{\textwidth}{!}{
+%                 \input{plots/nn1_all_class_mnist_pd.pgf}
+%             }
+%             \caption{Epoch 1}
+%         \end{subfigure}
+%         \begin{subfigure}{0.24\textwidth}
+%             \resizebox{\textwidth}{!}{
+%                 \input{plots/nn7_all_class_mnist_pd.pgf}
+%             }
+%             \caption{Epoch 7}
+%         \end{subfigure}
+%         \begin{subfigure}{0.24\textwidth}
+%             \resizebox{\textwidth}{!}{
+%                 \input{plots/nn14_all_class_mnist_pd.pgf}
+%             }
+%             \caption{Epoch 14}
+%         \end{subfigure}
+%         \begin{subfigure}{0.24\textwidth}
+%             \resizebox{\textwidth}{!}{
+%                 \input{plots/gt_all_class_mnist_pd.pgf}
+%             }
+%             \caption{Ground truth}
+%         \end{subfigure}
+%         \caption*{Evolution of persistence diagrams in the multiclass setting.}
+%         \label{fig:multiclass-pds}
+%     \end{figure}
+%     }
+% \end{frame}
+
+\begin{frame}{Results: multiclass classification}
+    \begin{columns}
+        \column{0.2\textwidth}
+        Clear indication of overfit in the overfit model's trajectory
+        \column{0.8\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/aarhus/all-class-wass.pgf}
+        }
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Results: multiclass classification, train data}
+    \begin{columns}
+        \column{0.2\textwidth}
+        TDA on training data, accuracy on test data
+        \column{0.8\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/aarhus/all-class-train-wass.pgf}
+        }
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Results: multiclass classification, CIFAR10, 2000 points}
+    \begin{columns}
+        \column{0.2\textwidth}
+        Weak correlation as dimensionality of data increases,
+        number of datapoints is unchanged
+        \column{0.8\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/aarhus/all-class-cifar-wass.pgf}
+        }
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Results: multiclass classification, CIFAR10, 8000 points}
+    \begin{columns}
+        \column{0.2\textwidth}
+        Increasing number of points improves correlation
+        \column{0.8\textwidth}
+        \resizebox{\textwidth}{!}{
+            \input{plots/aarhus/all-class-cifar-p800-wass.pgf}
+        }
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Conclusion}
+    \begin{columns}
+    \begin{column}{0.5\textwidth}
+    \begin{itemize}
+        \item<1-> Multiclass LVR complex is better
+        \only<1>{
+            \begin{itemize}
+                \item Preserves more topological information
+                \item Stronger correlation
+                \item More computationally efficient
+            \end{itemize}
+        }
+        \item<2-> TDA provides insights into classifier behavior
+        \only<2>{\begin{itemize}
+            \item Strong correlation between Wasserstein distance and model accuracy
+            \item Wasserstein distance increases during overfitting
+        \end{itemize}}
+        \item<3-> Training data decision boundary topology correlates with test performance
+        \only<3>{\begin{itemize}
+            \item Enables model evaluation without separate test sets
+            \item Could serve as early overfitting detection
+        \end{itemize}}
+        \item<4-> Dimensionality scaling from CIFAR-10 experiments
+        \only<4>{\begin{itemize}
+            \item Initial effectiveness decrease in higher dimensions
+            \item Performance restored by increasing sample size
+            \item Limitation: too many points required for very high-dimensional $X$
+        \end{itemize}}
+    \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \only<1>{\hspace*{-2em}\resizebox{1.1\textwidth}{!}{\input{plots/lvr_step3.pgf}}}
+        \only<2>{\resizebox{\textwidth}{!}{\input{plots/aarhus/all-class-wass.pgf}}}
+        \only<3>{\resizebox{\textwidth}{!}{\input{plots/aarhus/all-class-train-wass.pgf}}}
+        \only<4>{\resizebox{\textwidth}{!}{\input{plots/aarhus/all-class-cifar-p800-wass.pgf}}}
+    \end{column}
+    \end{columns}
+    \only<5>{
+        \vspace*{20pt}
+        \centering
+        \large Thank you for your attention!
+    }
+\end{frame}
+
+% \begin{frame}
+%     \frametitle{Two-Column Itemized List with Image Overlays}
+
+%     \begin{columns}
+%         % First Column: Itemized List
+%         \column{0.5\textwidth}
+%         \begin{itemize}
+%             \item<1-> First Item
+%             \item<2-> Second Item
+%             \item<3-> Third Item
+%             \begin{itemize}
+%                 \item<3-> Subitem A
+%                 \item<3-> Subitem B
+%             \end{itemize}
+%             \item<4-> Fourth Item
+%             \begin{itemize}
+%                 \item<4-> Subitem C
+%                 \item<4-> Subitem D
+%             \end{itemize}
+%         \end{itemize}
+
+%         % Second Column: Images
+%         \column{0.5\textwidth}
+%         \only<1>{\includegraphics[width=\linewidth]{image1.jpg}}
+%         \only<2>{\includegraphics[width=\linewidth]{image2.jpg}}
+%         \only<3>{\includegraphics[width=\linewidth]{image3.jpg}}
+%         \only<4>{\includegraphics[width=\linewidth]{image4.jpg}}
+%     \end{columns}
+
+% \end{frame}
+
+\end{document}

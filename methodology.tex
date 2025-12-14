@@ -2,8 +2,8 @@
 \label{chap:methodology}
 
 This chapter describes our pipeline for analyzing the topology of neural network decision 
-boundaries. For a given neural network and dataset, our pipeline consists of the
-following steps:
+boundaries. For a given network and dataset, we track the evolution of decision
+boundaries during training by applying the following steps at each epoch:
 \begin{enumerate}
     \item Sample a subset of the dataset and obtain model predictions on this subset
     \item Construct the LVR complex using the predicted labels
