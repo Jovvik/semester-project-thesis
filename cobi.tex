@@ -28,7 +28,7 @@
 \title{Topological Analysis of Decision Boundaries}
 \author{Maxim Mikhaylov with supervision by Dr. Patrick Schnider}
 \institute{ETH Zürich}
-\date{}
+\date{\small Sep 2024 -- Feb 2025}
 
 \newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
 
@@ -38,190 +38,240 @@
     \titlepage
 \end{frame}
 
-\begin{frame}{Introduction}
+\begin{frame}{Profile}
+    \begin{columns}
+        \column{0.5\textwidth}
+        Engineering
+        \begin{itemize}
+            \item \textbf{Core:} computational methods, including numerical implementation (C++)
+            \item \textbf{Skills:}
+            \begin{itemize}
+                \item Systems programming
+                \item Optimization
+                \item Parallel programming
+                \item Numerical methods
+            \end{itemize} 
+        \end{itemize}
+        I build fast, reliable software for computationally intensive research tasks.
+        \column{0.5\textwidth}
+        Research
+        \begin{itemize}
+            \item \textbf{Focus:} physical systems and interdisciplinary problems
+            \item \textbf{Experience:} \begin{itemize}
+                \item Robotics (ITMO)
+                \item Satellite Nav (Bosch)
+                \item Topological Data Analysis (ETH)
+            \end{itemize}
+        \end{itemize}
+        I research physical reality with computational methods.
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Project Introduction}
     \begin{itemize}
-        \item Machine learning classifiers partition their input space into regions corresponding to different class labels $1\dots n$
-        \item The boundaries between these regions, \emph{decision boundaries}, are important for generalization
-        \item Let's use topological data analysis to study how decision boundaries evolve during training to detect overfitting
+        \item Neural networks partition high-dimensional input spaces into class regions.
+        \item The boundaries between these regions, \emph{decision boundaries}, are important for generalization.
+        \item Hypothesis: The topological complexity (e.g., fragmentation, holes) of these surfaces correlates with overfitting.
     \end{itemize}
     \begin{figure}
-        \textcolor{red}{Illustration of decision boundaries in 2D here.}
+\begin{tikzpicture}[scale=0.8, transform shape]
+        % 1. Define Styles (Consistent with previous slides)
+        \tikzset{
+            bluept/.style={circle, fill=blue!90, draw=black, thick, inner sep=2.5pt},
+            redpt/.style={circle, fill=red!90, draw=black, thick, inner sep=2.5pt},
+            boundary/.style={draw=black, ultra thick, smooth},
+            regionBlue/.style={fill=blue!10},
+            regionRed/.style={fill=red!10},
+            annotation/.style={
+                draw=gray!80, fill=white, rounded corners, 
+                font=\small\sffamily, align=center
+            },
+            arrow/.style={->, >=stealth, thick, gray!80}
+        }
+
+        % Clip the view
+        % \clip[rounded corners] (-0.5, -0.5) rectangle (8.5, 6);
+        \draw[gray!50] (-0.5, -0.5) rectangle (8.5, 6);
+
+        % --- 2. DRAW REGIONS ---
+        % We define a path for the boundary: A "Wiggle" (Sine wave-ish)
+        % Start high left, dip down, go up, dip down right.
+        \def\boundaryPath{
+            (-0.5, 4.5) .. controls (2, 1) and (4, 5) .. (6, 2) .. controls (7, 0.5) .. (8.5, 1)
+        }
+
+        % Fill Red Region (Below line)
+        \fill[regionRed] \boundaryPath -- (8.5, -0.5) -- (-0.5, -0.5) -- (-0.5, 6) -- cycle;
+
+        % Fill Blue Region (Above line)
+        \fill[regionBlue] \boundaryPath -- (8.5, 6) -- (-0.5, 6) -- cycle;
+
+        % --- 3. DRAW THE BOUNDARY ---
+        \draw[boundary] \boundaryPath;
+
+        % --- 4. DATA POINTS (Fitting the wiggle) ---
+        
+        % Red Points (Below the wiggle)
+        \node[redpt] at (1.0, 1.5) {};
+        \node[redpt] at (2.0, 1.0) {};
+        \node[redpt] at (0.5, 2.5) {};
+        \node[redpt] at (3.0, 2.0) {};
+        \node[redpt] at (5.5, 1.0) {};
+        \node[redpt] at (7.0, 0.5) {};
+        \node[redpt] at (8.0, 0.2) {};
+        \node[redpt] (targetRed) at (4.5, 1.8) {}; % Target for annotation
+
+        % Blue Points (Above the wiggle)
+        \node[bluept] at (1.0, 4.5) {};
+        \node[bluept] at (2.5, 4.0) {};
+        \node[bluept] (targetBlue) at (3.5, 4.8) {}; % Target for annotation
+        \node[bluept] at (5.0, 4.0) {};
+        \node[bluept] at (6.5, 3.5) {};
+        \node[bluept] at (7.5, 2.5) {};
+        \node[bluept] at (8.0, 4.0) {};
+
+        % --- 5. ANNOTATIONS (The Educational Part) ---
+
+        % A. The Points
+        \node[annotation] (notePoint) at (-2.5, 3.5) {\textbf{Data points}\\Labeled inputs};
+        \draw[arrow] (notePoint) -- (targetBlue);
+        
+        % B. The Boundary
+        \node[annotation] (noteBoundary) at (11.0, 3.2) {\textbf{Decision boundary}\\The surface separating\\class regions};
+        \draw[arrow] (noteBoundary) -- (5.3, 2.85); % Pointing to the line middle
+
+        % C. The Regions
+        % \node[annotation] (noteRegion) at (2.0, 0.2) {\textbf{Decision Region}\\Predicted Class: Red};
+        % No arrow needed, it sits inside the region
+
+        % Add math label for regions
+        \node[blue!60!black, font=\bfseries] at (6.5, 5.0) {Class 1};
+        \node[red!60!black, font=\bfseries] at (1.5, 0.2) {Class 0};
+
+    \end{tikzpicture}
     \end{figure}
 \end{frame}
 
 \begin{frame}{Theoretical background: Overfitting}
-    \begin{columns}
-        \column{0.7\textwidth}
+    % \begin{columns}
+    %     \column{0.7\textwidth}
         \begin{itemize}
             \item Model fits training data too closely, fails to generalize to unseen data
             \item Performance improves on training data, but degrades on validation data
             \item Maybe this is reflected in the topology of decision boundaries?
         \end{itemize}
-        \column{0.3\textwidth}
-        \begin{figure}
-            \textcolor{red}{Illustration of overfitting here; plot of training acc improving, validation acc dropping.}
-        \end{figure}
-    \end{columns}
+    %     \column{0.3\textwidth}
+    %     \begin{figure}
+    %         \textcolor{red}{Illustration of overfitting here; plot of training acc improving, validation acc dropping.}
+    %     \end{figure}
+    % \end{columns}
+    \begin{figure}
+    \begin{tikzpicture}[scale=0.7, transform shape]
+        % 1. Define Styles: High contrast, saturated points
+        \tikzset{
+            bluept/.style={circle, fill=blue!90, draw=black, thick, inner sep=2pt},
+            redpt/.style={circle, fill=red!90, draw=black, thick, inner sep=2pt},
+            boundary/.style={draw=black, very thick},
+            regionBlue/.style={fill=blue!15},
+            regionRed/.style={fill=red!15}
+        }
+
+        % 2. Define Data Points: "Red Island" surrounded by "Blue Ocean"
+        \newcommand{\datapoints}{
+            % --- RED CLUSTER (Center) ---
+            \node[redpt] at (1.8, 1.8) {};
+            \node[redpt] at (2.2, 2.2) {};
+            \node[redpt] at (1.7, 2.3) {};
+            \node[redpt] at (2.3, 1.7) {};
+            \node[redpt] at (2.0, 2.4) {};
+
+            % --- BLUE RING (Surrounding) ---
+            % Corners
+            \node[bluept] at (0.6, 0.6) {};
+            \node[bluept] at (0.6, 3.4) {};
+            \node[bluept] at (3.4, 3.4) {};
+            \node[bluept] at (3.4, 0.6) {};
+            % Edges
+            \node[bluept] at (2.0, 0.4) {};
+            \node[bluept] at (2.0, 3.6) {};
+            \node[bluept] at (0.4, 2.0) {};
+            \node[bluept] at (3.6, 2.0) {};
+
+            % --- NOISE POINTS ---
+            % Blue Noise inside Red Cluster (The Hole)
+            \node[bluept] at (2.0, 2.0) {}; 
+            
+            % Red Noise inside Blue Ring (The Satellite)
+            \node[redpt] at (3.1, 3.1) {};
+        }
+
+        % --- PLOT 1: Underfitting (Linear) ---
+        % A line cannot separate an island from the ocean.
+        \begin{scope}[xshift=0cm]
+            % \clip[rounded corners] (-0.5, -0.5) rectangle (4, 4);
+            
+            % Background (Blue)
+            \fill[regionBlue] (-0.5, -0.5) rectangle (4, 4);
+            
+            % Red Region (Linear Cut - Fails)
+            \fill[regionRed] (1, 4) -- (4, 1) -- (4, 4) -- cycle;
+            \draw[boundary, color=green!40!black] (1, 4) -- (4, 1);
+            
+            \draw[gray!50] (-0.5, -0.5) rectangle (4, 4);
+            \node[font=\small] at (1.75, -0.8) {Underfit};
+            
+            \datapoints
+        \end{scope}
+
+        % --- PLOT 2: Generalization (Smooth Topology) ---
+        % A simple circle captures the main cluster.
+        \begin{scope}[xshift=5.5cm]
+            % \clip[rounded corners] (-0.5, -0.5) rectangle (4, 4);
+
+            % Background (Blue)
+            \fill[regionBlue] (-0.5, -0.5) rectangle (4, 4);
+            
+            % Red Region (Smooth Circle)
+            \fill[regionRed] (2.0, 2.0) circle (1.1);
+            \draw[boundary, color=green!40!black] (2.0, 2.0) circle (1.1);
+            
+            \draw[gray!50] (-0.5, -0.5) rectangle (4, 4);
+            \node[font=\small] at (1.75, -0.8) {Fit};
+            
+            \datapoints
+        \end{scope}
+
+        % --- PLOT 3: Overfitting (Complex Topology) ---
+        % Holes and Islands appear.
+        \begin{scope}[xshift=11cm]
+            % \clip[rounded corners] (-0.5, -0.5) rectangle (4, 4);
+
+            % Background (Blue)
+            \fill[regionBlue] (-0.5, -0.5) rectangle (4, 4);
+            
+            % 1. Main Red Blob (Distorted Circle)
+            \fill[regionRed] (2.0, 2.0) circle (1.1);
+            \draw[boundary, color=green!40!black] (2.0, 2.0) circle (1.1);
+
+            % 2. The Topological Change (Hole for Blue Noise)
+            \fill[regionBlue] (2.0, 2.0) circle (0.25);
+            \draw[boundary, color=green!40!black] (2.0, 2.0) circle (0.25);
+            
+            % 3. The Topological Change (Island for Red Noise)
+            \fill[regionRed] (3.1, 3.1) circle (0.25);
+            \draw[boundary, color=green!40!black] (3.1, 3.1) circle (0.25);
+
+            \draw[gray!50] (-0.5, -0.5) rectangle (4, 4);
+            \node[font=\small] at (1.75, -0.8) {Overfit};
+            
+            \datapoints
+        \end{scope}
+
+    \end{tikzpicture}
+    \end{figure}
 \end{frame}
 
-% \begin{frame}[b]{Theoretical background: Machine learning}
-%     \begin{itemize}
-%         \item Learn from data without explicit programming
-%         \item<2-> Classifiers map input data $\in \mathbb{R}^d$ to class labels $\in \{1, \dots, n\}$
-%         \item<3-> Networks are a sequence of layers, data flowing from input layer to output layer
-%         \item<4-> To train, compute the gradient of the loss function with respect to the network parameters using \only<4>{\textcolor{red}{backpropagation}}\only<5->{backpropagation}, and update parameters using gradient descent
-%         \only<5-6>{\item Fully-connected layers: $y = A x + b$}
-%         \only<6>{\item Activation layers: nonlinearity for expressiveness}
-%         \item<7-> Convolutional layers: parameter-efficient filters for images / time series
-%     \end{itemize}
-%     \only<1>{\vspace*{113pt}}
-%     \only<2>{\vspace*{82pt}}
-%     \only<3>{\vspace*{77pt}}
-%     \only<4>{\vspace*{77pt}}
-%     \only<5>{\vspace*{63.5pt}}
-%     \only<6>{\vspace*{46pt}}
-%     \only<2>{
-%         \begin{tikzpicture}[
-%             node distance=1cm,
-%             box/.style={rectangle,draw},
-%             arrow/.style={->,>=stealth,thick},
-%             every text node part/.style={font=\footnotesize}
-%         ]
-        
-%         \node[box] (input) { $x \in \mathbb{R}^d$ }
-        
-%         \node[box,right=of input,text width=7cm,align=center] (nn) { Neural network }
 
-%         \node[box,right=of nn] (output) { Output $\in \{1, \dots, n\}$ }
-        
-%         \draw[arrow] (input) -- (nn);
-%         \draw[arrow] (nn) -- (output);
-        
-%         \end{tikzpicture}
-%     }
-%     \only<3>{
-%         \begin{tikzpicture}[
-%             node distance=1cm,
-%             box/.style={rectangle,draw},
-%             arrow/.style={->,>=stealth,thick},
-%             every text node part/.style={font=\footnotesize}
-%         ]
-        
-%         \node[box] (input) { $x \in \mathbb{R}^d$ }
-
-%         \node[box,right=of input,text width=7cm,align=center] (nn) { \begin{tikzpicture}
-%             \node[box] (layer1) { Layer 1 }
-%             \node[box,right=of layer1] (layer2) { Layer 2 }
-%             \node[box,right=of layer2] (layer3) { Layer 3 }
-%             \node[right=of layer3] (layer4) {}
-%             \draw[arrow] (layer1) -- (layer2);
-%             \draw[arrow] (layer2) -- (layer3);
-%             \draw[arrow] (layer3) -- (layer4);
-%         \end{tikzpicture} }
-
-%         \node[box,right=of nn] (output) { Output $\in \{1, \dots, n\}$ }
-        
-%         \draw[arrow] (input) -- (nn);
-%         \draw[arrow] (nn) -- (output);
-        
-%         \end{tikzpicture}
-%     }
-%     \only<4>{
-%         \begin{tikzpicture}[
-%             node distance=1cm,
-%             box/.style={rectangle,draw},
-%             arrow/.style={->,>=stealth,thick},
-%             every text node part/.style={font=\footnotesize}
-%         ]
-        
-%         \node[box] (input) { $x \in \mathbb{R}^d$ }
-
-%         \node[box,right=of input,text width=7cm,align=center] (nn) { \begin{tikzpicture}
-%             \node[box] (layer1) { Layer 1 }
-%             \node[box,right=of layer1] (layer2) { Layer 2 }
-%             \node[box,right=of layer2] (layer3) { Layer 3 }
-%             \node[right=of layer3] (layer4) {}
-%             \draw[arrow] (layer1) -- (layer2);
-%             \draw[arrow] (layer2) -- (layer3);
-%             \draw[arrow] (layer3) -- (layer4);
-%             \begin{scope}[transform canvas={yshift=-.4em}]
-%                 \draw[arrow,red] (layer4) -- (layer3);
-%                 \draw[arrow,red] (layer3) -- (layer2);
-%                 \draw[arrow,red] (layer2) -- (layer1);
-%             \end{scope}
-%         \end{tikzpicture} }
-
-%         \node[box,right=of nn] (output) { Output $\in \{1, \dots, n\}$ }
-        
-%         \draw[arrow] (input) -- (nn);
-%         \draw[arrow] (nn) -- (output);
-        
-%         \begin{scope}[transform canvas={yshift=-.4em}]
-%             \draw[arrow,red] (output) -- (nn);
-%             \draw[arrow,red] (nn) -- (input);
-%         \end{scope}
-
-%         \end{tikzpicture}
-%     }
-%     \only<5>{
-%         \begin{tikzpicture}[
-%             node distance=1cm,
-%             box/.style={rectangle,draw},
-%             arrow/.style={->,>=stealth,thick},
-%             every text node part/.style={font=\footnotesize}
-%         ]
-        
-%         \node[box] (input) { $x \in \mathbb{R}^d$ }
-
-%         \node[box,right=of input,text width=7cm,align=center] (nn) { \begin{tikzpicture}
-%             \node[box] (layer1) { $A_1x + b_1$ }
-%             \node[box,right=2.9em of layer1] (layer2) { Layer 2 }
-%             \node[box,right=2.9em of layer2] (layer3) { Layer 3 }
-%             \node[    right=2.9em of layer3] (layer4) {}
-%             \draw[arrow] (layer1) -- (layer2);
-%             \draw[arrow] (layer2) -- (layer3);
-%             \draw[arrow] (layer3) -- (layer4);
-%         \end{tikzpicture} }
-
-%         \node[box,right=of nn] (output) { Output $\in \{1, \dots, n\}$ }
-        
-%         \draw[arrow] (input) -- (nn);
-%         \draw[arrow] (nn) -- (output);
-        
-%         \end{tikzpicture}
-%     }
-%     \only<6>{
-%         \begin{tikzpicture}[
-%             node distance=1cm,
-%             box/.style={rectangle,draw},
-%             arrow/.style={->,>=stealth,thick},
-%             every text node part/.style={font=\footnotesize}
-%         ]
-        
-%         \node[box] (input) { $x \in \mathbb{R}^d$ }
-
-%         \node[box,right=of input,text width=7cm,align=center] (nn) { \begin{tikzpicture}
-%             \node[box] (layer1) { $A_1x + b_1$ }
-%             \node[box,right=1.8em of layer1] (layer2) { $\tanh(A_1x + b_1)$ }
-%             \node[box,right=1.8em of layer2] (layer3) { Layer 3 }
-%             \node[    right=1.8em of layer3] (layer4) {}
-%             \draw[arrow] (layer1) -- (layer2);
-%             \draw[arrow] (layer2) -- (layer3);
-%             \draw[arrow] (layer3) -- (layer4);
-%         \end{tikzpicture} }
-
-%         \node[box,right=of nn] (output) { Output $\in \{1, \dots, n\}$ }
-        
-%         \draw[arrow] (input) -- (nn);
-%         \draw[arrow] (nn) -- (output);
-        
-%         \end{tikzpicture}
-%     }
-%     \only<7>{
-%         \includegraphics[width=0.6\textwidth]{conv.png}
-%     }
-%     \only<5-6>{\vspace*{10pt}}
-% \end{frame}
 
 \begin{frame}{Theoretical background: Persistent homology}
     \begin{itemize}
@@ -250,7 +300,7 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Pipeline}
+\begin{frame}{Pipeline to capture decision boundary topology}
     \resizebox{\textwidth}{!}{
     \begin{tikzpicture}[
         node distance=1cm,
@@ -1077,86 +1127,6 @@
 \end{frame}
 
 
-\begin{frame}{Binarization}
-    \begin{columns}
-        \column{0.8\textwidth}
-        Previous work only considered binary classification by splitting
-        a dataset with $n$ classes into $\binom{n}{2}$ binary datasets.
-        This changes the homology groups:
-        \begin{itemize}
-            \item Original has $H_1 \not\cong 0$
-            \item All binary decompositions have $H_1 \cong 0$
-            % \item Original has $\dim H_0 = 1$
-            % \item The red-green binary decomposition has $\dim H_0 = 2$.
-        \end{itemize}
-        It is better to avoid binarization.
-        \column{0.2\textwidth}
-        \begin{tikzpicture}
-            \fill[blue] (0,0) circle(0.5);
-    
-            \fill[red]
-            (0,-0.5)           % Start at bottom inner point
-            arc(-90:90:0.5)     % Inner arc: radius=0.5 from -90° to 90° (bottom to top on the right side)
-            -- (0,1)            % Line from top inner (0,0.5) to top outer (0,1)
-            arc(90:-90:1)       % Outer arc: radius=1 from 90° to -90° (top to bottom on the right side)
-            -- cycle;           
-
-            \begin{scope}[rotate=180]
-            \fill[green]
-            (0,-0.5)
-            arc(-90:90:0.5)
-            -- (0,1)
-            arc(90:-90:1)
-            -- cycle;
-            \end{scope}
-            
-            % Decision boundary
-            \draw[line width=0.5mm] (0, 0.5) -- (0, 1);
-            \draw[line width=0.5mm] (0, -0.5) -- (0, -1);
-            \draw[line width=0.5mm] (0,0) circle (0.5);
-        \end{tikzpicture}
-        \linebreak
-
-        \begin{tikzpicture}
-            \fill[red]
-            (0,-0.5)           % Start at bottom inner point
-            arc(-90:90:0.5)     % Inner arc: radius=0.5 from -90° to 90° (bottom to top on the right side)
-            -- (0,1)            % Line from top inner (0,0.5) to top outer (0,1)
-            arc(90:-90:1)       % Outer arc: radius=1 from 90° to -90° (top to bottom on the right side)
-            -- cycle;           
-
-            \begin{scope}[rotate=180]
-            \fill[green]
-            (0,-0.5)
-            arc(-90:90:0.5)
-            -- (0,1)
-            arc(90:-90:1)
-            -- cycle;
-            \end{scope}
-            
-            % Decision boundary
-            \draw[line width=0.5mm] (0, 0.5) -- (0, 1);
-            \draw[line width=0.5mm] (0, -0.5) -- (0, -1);
-        \end{tikzpicture}
-        \\
-
-        \begin{tikzpicture}
-            \fill[blue] (0,0) circle(0.5);
-    
-            \begin{scope}[rotate=180]
-            \fill[green]
-            (0,-0.5)
-            arc(-90:90:0.5)
-            -- (0,1)
-            arc(90:-90:1)
-            -- cycle;
-            \end{scope}
-            
-            % Decision boundary
-            \draw[line width=0.5mm] (0,0.5) arc (90:270:0.5);
-        \end{tikzpicture}
-    \end{columns}
-\end{frame}
 
 \begin{frame}{Labeled Vietoris-Rips complex}
     \begin{columns}
@@ -1286,21 +1256,52 @@
     \end{center}
 \end{frame}
 
-\begin{frame}{Circumcircle filtering impact}
-    \begin{figure}
-        \centering
-        \begin{subfigure}{0.3\textwidth}
-            \includegraphics[width=\textwidth]{plots/nested_complex_9_no_cc.jpg}
-        \end{subfigure}%
-        \begin{subfigure}{0.3\textwidth}
-            \includegraphics[width=\textwidth]{plots/nested_complex_9_cc.jpg}
-        \end{subfigure}%
-        \begin{subfigure}{0.3\textwidth}
-            \resizebox{\textwidth}{!}{
-                \input{plots/nested_ph_cc.pgf}
-            }
-        \end{subfigure}%
-    \end{figure}
+\begin{frame}{2D Validation}
+    \begin{columns}
+        % LEFT COLUMN: The Visual Result (Proof it works)
+        \column{0.45\textwidth}
+        \begin{figure}
+            \centering
+            % Top row: Before/After images
+            \begin{subfigure}{0.48\textwidth}
+                \includegraphics[width=\textwidth]{plots/nested_complex_9_no_cc.jpg}
+                \caption*{\tiny Original}
+            \end{subfigure}%
+            \hfill
+            \begin{subfigure}{0.48\textwidth}
+                \includegraphics[width=\textwidth]{plots/nested_complex_9_cc.jpg}
+                \caption*{\tiny With Filter}
+            \end{subfigure}
+            
+            \vspace{0.2cm}
+            
+            % Bottom row: Persistence Diagram
+            \begin{subfigure}{\textwidth}
+                \centering
+                \resizebox{0.6\textwidth}{!}{
+                    \input{plots/nested_ph_cc.pgf}
+                }
+                \caption*{\tiny Persistence Diagram Cleanup}
+            \end{subfigure}
+        \end{figure}
+
+        % RIGHT COLUMN: The Engineering (The "Hero" Part)
+        \column{0.55\textwidth}
+        \textbf{Computational Bottleneck:}
+        \begin{itemize}
+            \item Requires checking the condition for every edge against every other node.
+            \item Python prototypes were prohibitively slow.
+        \end{itemize}
+
+        \vspace{0.3cm}
+        
+        \textbf{C++ Implementation:}
+        \begin{itemize}
+            \item C++ SIMD extension to handle the filtering.
+            \item \textbf{Outcome:} Reduced filtering time to negligible overhead compared to complex construction.
+            \item Enabled scaling the analysis to large, high-dimensional datasets.
+        \end{itemize}
+    \end{columns}
 \end{frame}
 
 \begin{frame}{Circumcircle filtering impact on high-dimensional data}
@@ -1318,7 +1319,7 @@
         CIFAR10 & 7 & 0 \\
         \bottomrule
     \end{tabular}
-    \caption*{Maximum differences in Wasserstein distance between persistence diagrams with and without CC.}
+    \caption*{Maximum differences in Wasserstein distance with and without CC.}
     \label{tab:cc_effect}
 \end{table}
         % }
@@ -1337,7 +1338,8 @@
         \caption*{The two persistence diagrams that differ the most when CC is applied.}
     \end{figure}
     \end{columns}
-    The difference is negligible $\implies$ CC is not used
+    The C++ optimization allowed us to rigorously test the projects hypothesis.\\ 
+    \textbf{Conclusion:} In the studied high-dimensional cases, sparsity renders filtering unnecessary, validating the use of the standard LVR complex for these tasks.
 \end{frame}
 
 % \begin{frame}{Results: binary classification}
@@ -1392,18 +1394,6 @@
 %     }
 % \end{frame}
 
-\begin{frame}{Results: binary classification}
-    \begin{figure}
-        \centering
-        \resizebox{0.7\textwidth}{!}{
-            \input{plots/aarhus/baseline-wass.pgf}
-        }
-        \caption*{Relationship between Wasserstein distance and model accuracy across
-        all binary classification pairs in MNIST. Connected points represent consecutive
-        epochs for the same class pair.}
-        \label{fig:baseline-binary-scatter-wass}
-    \end{figure}
-\end{frame}
 
 % \begin{frame}{Results: multiclass classification (MNIST)}
 %     \Wider[5em]{
@@ -1487,26 +1477,27 @@
     \begin{columns}
     \begin{column}{0.5\textwidth}
     \begin{itemize}
-        \item<1-> Multiclass LVR complex is better
-        \only<1>{
-            \begin{itemize}
-                \item Preserves more topological information
-                \item Stronger correlation
-                \item More computationally efficient
-            \end{itemize}
-        }
-        \item<2-> TDA provides insights into classifier behavior
-        \only<2>{\begin{itemize}
+        % \item<1-> Multiclass LVR complex is better
+        % \only<1>{
+        %     \begin{itemize}
+        %         \item Preserves more topological information
+        %         \item Stronger correlation
+        %         \item More computationally efficient
+        %     \end{itemize}
+        % }
+        \item<1-> TDA provides insights into classifier behavior
+        \only<1>{\begin{itemize}
             \item Strong correlation between Wasserstein distance and model accuracy
             \item Wasserstein distance increases during overfitting
         \end{itemize}}
-        \item<3-> Training data decision boundary topology correlates with test performance
-        \only<3>{\begin{itemize}
+        \item<2-> Training data decision boundary topology correlates with test performance
+        \only<2>{\begin{itemize}
+            \item A-priori indicator for model behavior
             \item Enables model evaluation without separate test sets
             \item Could serve as early overfitting detection
         \end{itemize}}
-        \item<4-> Dimensionality scaling from CIFAR-10 experiments
-        \only<4>{\begin{itemize}
+        \item<3-> Dimensionality scaling from CIFAR-10 experiments
+        \only<3>{\begin{itemize}
             \item Initial effectiveness decrease in higher dimensions
             \item Performance restored by increasing sample size
             \item Limitation: too many points required for very high-dimensional $X$
@@ -1514,17 +1505,17 @@
     \end{itemize}
     \end{column}
     \begin{column}{0.5\textwidth}
-        \only<1>{\hspace*{-2em}\resizebox{1.1\textwidth}{!}{\input{plots/lvr_step3.pgf}}}
-        \only<2>{\resizebox{\textwidth}{!}{\input{plots/aarhus/all-class-wass.pgf}}}
-        \only<3>{\resizebox{\textwidth}{!}{\input{plots/aarhus/all-class-train-wass.pgf}}}
-        \only<4>{\resizebox{\textwidth}{!}{\input{plots/aarhus/all-class-cifar-p800-wass.pgf}}}
+        % \only<1>{\hspace*{-2em}\resizebox{1.1\textwidth}{!}{\input{plots/lvr_step3.pgf}}}
+        \only<1>{\resizebox{\textwidth}{!}{\input{plots/aarhus/all-class-wass.pgf}}}
+        \only<2>{\resizebox{\textwidth}{!}{\input{plots/aarhus/all-class-train-wass.pgf}}}
+        \only<3>{\resizebox{\textwidth}{!}{\input{plots/aarhus/all-class-cifar-p800-wass.pgf}}}
     \end{column}
     \end{columns}
-    \only<5>{
-        \vspace*{20pt}
-        \centering
-        \large Thank you for your attention!
-    }
+    % \only<5>{
+    %     \vspace*{20pt}
+    %     \centering
+    %     \large Thank you for your attention!
+    % }
 \end{frame}
 
 % \begin{frame}
@@ -1557,5 +1548,315 @@
 %     \end{columns}
 
 % \end{frame}
+
+\begin{frame}{Research Identity}
+    My research interest lies consistently at the intersection of
+    \textbf{computational systems} and \textbf{physical reality}.
+    
+    \vspace{0.5cm}
+    
+    \begin{columns}[t]
+        \column{0.33\textwidth}
+        \textbf{Robotics (ITMO)}
+        \begin{itemize}
+            \item \emph{Context:} Autonomous agents with strict compute limits.
+            \item \emph{Challenge:} ML inference under extreme resource constraints.
+        \end{itemize}
+        
+        \column{0.33\textwidth}
+        \textbf{Satellite Nav (Bosch)}
+        \begin{itemize}
+            \item \emph{Context:} Global positioning systems with noisy signal data.
+            \item \emph{Challenge:} Robust processing of noisy and partially observable signals.
+        \end{itemize}
+        
+        \column{0.33\textwidth}
+        \textbf{Topology (ETHZ)}
+        \begin{itemize}
+            \item \emph{Context:} High-dimensional geometric data analysis.
+            \item \emph{Challenge:} Highly-efficient C++ kernels for high-dimensional geometric predicates.
+        \end{itemize}
+    \end{columns}
+
+    \vspace{0.5cm}
+    
+    \begin{center}
+        \textit{Common Thread: Understanding how domain-specific constraints shape computational models.}
+    \end{center}
+\end{frame}
+
+\begin{frame}{Motivation: Why SimuCell3D?}
+    \textbf{The Challenge:}
+    \begin{itemize}
+        \item Biology is the ultimate ``physical system"---massive scale, complex geometry, and noise.
+        \item \emph{SimuCell3D} provides a strong framework for tissue simulation, but exploring new biological regimes at tissue scale poses modelling challenges.
+    \end{itemize}
+
+    \vspace{0.3cm}
+
+    I want to apply my background in C++ engineering to:
+    \begin{enumerate}
+        \item \textbf{Extend Capabilities:} Implement the Reaction-Diffusion solvers (PDEs) required for chemical concentration awareness.
+        \item \textbf{Scale Performance:} Optimize the core mechanics (collision/solvers) to run larger simulations faster.
+        \item \textbf{Scientific Enablement:} Expand the range of biological questions that can be addressed through simulation.
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}
+    Extra slides
+\end{frame}
+
+\begin{frame}{Binarization}
+    \begin{columns}
+        \column{0.8\textwidth}
+        Previous work only considered binary classification by splitting
+        a dataset with $n$ classes into $\binom{n}{2}$ binary datasets.
+        This changes the homology groups:
+        \begin{itemize}
+            \item Original has $H_1 \not\cong 0$
+            \item All binary decompositions have $H_1 \cong 0$
+            % \item Original has $\dim H_0 = 1$
+            % \item The red-green binary decomposition has $\dim H_0 = 2$.
+        \end{itemize}
+        It is better to avoid binarization.
+        \column{0.2\textwidth}
+        \begin{tikzpicture}
+            \fill[blue] (0,0) circle(0.5);
+    
+            \fill[red]
+            (0,-0.5)           % Start at bottom inner point
+            arc(-90:90:0.5)     % Inner arc: radius=0.5 from -90° to 90° (bottom to top on the right side)
+            -- (0,1)            % Line from top inner (0,0.5) to top outer (0,1)
+            arc(90:-90:1)       % Outer arc: radius=1 from 90° to -90° (top to bottom on the right side)
+            -- cycle;           
+
+            \begin{scope}[rotate=180]
+            \fill[green]
+            (0,-0.5)
+            arc(-90:90:0.5)
+            -- (0,1)
+            arc(90:-90:1)
+            -- cycle;
+            \end{scope}
+            
+            % Decision boundary
+            \draw[line width=0.5mm] (0, 0.5) -- (0, 1);
+            \draw[line width=0.5mm] (0, -0.5) -- (0, -1);
+            \draw[line width=0.5mm] (0,0) circle (0.5);
+        \end{tikzpicture}
+        \linebreak
+
+        \begin{tikzpicture}
+            \fill[red]
+            (0,-0.5)           % Start at bottom inner point
+            arc(-90:90:0.5)     % Inner arc: radius=0.5 from -90° to 90° (bottom to top on the right side)
+            -- (0,1)            % Line from top inner (0,0.5) to top outer (0,1)
+            arc(90:-90:1)       % Outer arc: radius=1 from 90° to -90° (top to bottom on the right side)
+            -- cycle;           
+
+            \begin{scope}[rotate=180]
+            \fill[green]
+            (0,-0.5)
+            arc(-90:90:0.5)
+            -- (0,1)
+            arc(90:-90:1)
+            -- cycle;
+            \end{scope}
+            
+            % Decision boundary
+            \draw[line width=0.5mm] (0, 0.5) -- (0, 1);
+            \draw[line width=0.5mm] (0, -0.5) -- (0, -1);
+        \end{tikzpicture}
+        \\
+
+        \begin{tikzpicture}
+            \fill[blue] (0,0) circle(0.5);
+    
+            \begin{scope}[rotate=180]
+            \fill[green]
+            (0,-0.5)
+            arc(-90:90:0.5)
+            -- (0,1)
+            arc(90:-90:1)
+            -- cycle;
+            \end{scope}
+            
+            % Decision boundary
+            \draw[line width=0.5mm] (0,0.5) arc (90:270:0.5);
+        \end{tikzpicture}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Results: binary classification}
+    \begin{figure}
+        \centering
+        \resizebox{0.7\textwidth}{!}{
+            \input{plots/aarhus/baseline-wass.pgf}
+        }
+        \caption*{Relationship between Wasserstein distance and model accuracy across
+        all binary classification pairs in MNIST. Connected points represent consecutive
+        epochs for the same class pair.}
+        \label{fig:baseline-binary-scatter-wass}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[b]{Theoretical background: Machine learning}
+    \begin{itemize}
+        \item Learn from data without explicit programming
+        \item<2-> Classifiers map input data $\in \mathbb{R}^d$ to class labels $\in \{1, \dots, n\}$
+        \item<3-> Networks are a sequence of layers, data flowing from input layer to output layer
+        \item<4-> To train, compute the gradient of the loss function with respect to the network parameters using \only<4>{\textcolor{red}{backpropagation}}\only<5->{backpropagation}, and update parameters using gradient descent
+        \only<5-6>{\item Fully-connected layers: $y = A x + b$}
+        \only<6>{\item Activation layers: nonlinearity for expressiveness}
+        \item<7-> Convolutional layers: parameter-efficient filters for images / time series
+    \end{itemize}
+    \only<1>{\vspace*{113pt}}
+    \only<2>{\vspace*{82pt}}
+    \only<3>{\vspace*{77pt}}
+    \only<4>{\vspace*{77pt}}
+    \only<5>{\vspace*{63.5pt}}
+    \only<6>{\vspace*{46pt}}
+    \only<2>{
+        \begin{tikzpicture}[
+            node distance=1cm,
+            box/.style={rectangle,draw},
+            arrow/.style={->,>=stealth,thick},
+            every text node part/.style={font=\footnotesize}
+        ]
+        
+        \node[box] (input) { $x \in \mathbb{R}^d$ };
+        
+        \node[box,right=of input,text width=7cm,align=center] (nn) { Neural network };
+
+        \node[box,right=of nn] (output) { Output $\in \{1, \dots, n\}$ };
+        
+        \draw[arrow] (input) -- (nn);
+        \draw[arrow] (nn) -- (output);
+        
+        \end{tikzpicture}
+    }
+    \only<3>{
+        \begin{tikzpicture}[
+            node distance=1cm,
+            box/.style={rectangle,draw},
+            arrow/.style={->,>=stealth,thick},
+            every text node part/.style={font=\footnotesize}
+        ]
+        
+        \node[box] (input) { $x \in \mathbb{R}^d$ };
+
+        \node[box,right=of input,text width=7cm,align=center] (nn) { \begin{tikzpicture}
+            \node[box] (layer1) { Layer 1 };
+            \node[box,right=of layer1] (layer2) { Layer 2 };
+            \node[box,right=of layer2] (layer3) { Layer 3 };
+            \node[right=of layer3] (layer4) {};
+            \draw[arrow] (layer1) -- (layer2);
+            \draw[arrow] (layer2) -- (layer3);
+            \draw[arrow] (layer3) -- (layer4);
+        \end{tikzpicture} };
+
+        \node[box,right=of nn] (output) { Output $\in \{1, \dots, n\}$ };
+        
+        \draw[arrow] (input) -- (nn);
+        \draw[arrow] (nn) -- (output);
+        
+        \end{tikzpicture}
+    }
+    \only<4>{
+        \begin{tikzpicture}[
+            node distance=1cm,
+            box/.style={rectangle,draw},
+            arrow/.style={->,>=stealth,thick},
+            every text node part/.style={font=\footnotesize}
+        ]
+        
+        \node[box] (input) { $x \in \mathbb{R}^d$ };
+
+        \node[box,right=of input,text width=7cm,align=center] (nn) { \begin{tikzpicture}
+            \node[box] (layer1) { Layer 1 };
+            \node[box,right=of layer1] (layer2) { Layer 2 };
+            \node[box,right=of layer2] (layer3) { Layer 3 };
+            \node[right=of layer3] (layer4) {};
+            \draw[arrow] (layer1) -- (layer2);
+            \draw[arrow] (layer2) -- (layer3);
+            \draw[arrow] (layer3) -- (layer4);
+            \begin{scope}[transform canvas={yshift=-.4em}]
+                \draw[arrow,red] (layer4) -- (layer3);
+                \draw[arrow,red] (layer3) -- (layer2);
+                \draw[arrow,red] (layer2) -- (layer1);
+            \end{scope}
+        \end{tikzpicture} };
+
+        \node[box,right=of nn] (output) { Output $\in \{1, \dots, n\}$ };
+        
+        \draw[arrow] (input) -- (nn);
+        \draw[arrow] (nn) -- (output);
+        
+        \begin{scope}[transform canvas={yshift=-.4em}]
+            \draw[arrow,red] (output) -- (nn);
+            \draw[arrow,red] (nn) -- (input);
+        \end{scope}
+
+        \end{tikzpicture}
+    }
+    \only<5>{
+        \begin{tikzpicture}[
+            node distance=1cm,
+            box/.style={rectangle,draw},
+            arrow/.style={->,>=stealth,thick},
+            every text node part/.style={font=\footnotesize}
+        ]
+        
+        \node[box] (input) { $x \in \mathbb{R}^d$ };
+
+        \node[box,right=of input,text width=7cm,align=center] (nn) { \begin{tikzpicture}
+            \node[box] (layer1) { $A_1x + b_1$ };
+            \node[box,right=2.9em of layer1] (layer2) { Layer 2 };
+            \node[box,right=2.9em of layer2] (layer3) { Layer 3 };
+            \node[    right=2.9em of layer3] (layer4) {};
+            \draw[arrow] (layer1) -- (layer2);
+            \draw[arrow] (layer2) -- (layer3);
+            \draw[arrow] (layer3) -- (layer4);
+        \end{tikzpicture} };
+
+        \node[box,right=of nn] (output) { Output $\in \{1, \dots, n\}$ };
+        
+        \draw[arrow] (input) -- (nn);
+        \draw[arrow] (nn) -- (output);
+        
+        \end{tikzpicture}
+    }
+    \only<6>{
+        \begin{tikzpicture}[
+            node distance=1cm,
+            box/.style={rectangle,draw},
+            arrow/.style={->,>=stealth,thick},
+            every text node part/.style={font=\footnotesize}
+        ]
+        
+        \node[box] (input) { $x \in \mathbb{R}^d$ };
+
+        \node[box,right=of input,text width=7cm,align=center] (nn) { \begin{tikzpicture}
+            \node[box] (layer1) { $A_1x + b_1$ };
+            \node[box,right=1.8em of layer1] (layer2) { $\tanh(A_1x + b_1)$ };
+            \node[box,right=1.8em of layer2] (layer3) { Layer 3 };
+            \node[    right=1.8em of layer3] (layer4) {};
+            \draw[arrow] (layer1) -- (layer2);
+            \draw[arrow] (layer2) -- (layer3);
+            \draw[arrow] (layer3) -- (layer4);
+        \end{tikzpicture} };
+
+        \node[box,right=of nn] (output) { Output $\in \{1, \dots, n\}$ };
+        
+        \draw[arrow] (input) -- (nn);
+        \draw[arrow] (nn) -- (output);
+        
+        \end{tikzpicture}
+    }
+    \only<7>{
+        \includegraphics[width=0.6\textwidth]{conv.png}
+    }
+    \only<5-6>{\vspace*{10pt}}
+\end{frame}
 
 \end{document}
